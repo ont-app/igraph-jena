@@ -1,0 +1,18 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix sh: <http://www.w3.org/ns/shacl#>.
+@prefix eg: <http://rdf.example.com#>.
+
+@base <http://rdf.example.com#test-data.ttl>.
+
+<> a eg:TestFile.
+
+    eg:Thing1 a eg:Thing;
+    rdfs:label "Thing 1"@en;
+    eg:number 1.
+    
+    eg:Thing2 a eg:Thing;
+    rdfs:label "Thing 2"@en;
+    eg:number 2.

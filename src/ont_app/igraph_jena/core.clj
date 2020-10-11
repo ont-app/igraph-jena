@@ -30,13 +30,9 @@
   }
  )
 
-
 (def ontology @ont/ontology-atom)
 
-(def bnode-re #"^\"[0-9a-f]+\"$")
-
-
-(defn interpret-binding-element
+(defn- interpret-binding-element
   "Returns a KWI or literal value as appropriate to `elt`
   Where
   - `elt` is bound to some variable in a query posed to a jena model."
@@ -49,8 +45,7 @@
     ;; else it's a literal
     (rdf/render-literal elt)))
 
-
-(defn ask-jena-model
+(defn- ask-jena-model
   "Returns true/false for ASK query `q` posed to Jena model `g`"
   [g q]
   (let [qe (-> (QueryFactory/create q)
@@ -60,7 +55,7 @@
       (finally
         (.close qe)))))
 
-(defn query-jena-model
+(defn- query-jena-model
   "Returns (`binding-map`, ...) for `q` posed to `g`
   Where
   - `binding-map` := {`var` `value`, ...}
@@ -95,7 +90,7 @@
       (finally
         (.close qe))))))
 
-(defn make-statement
+(defn- make-statement
   "Returns a Jena Statment for `s` `p` and `o`"
   [s p o]
   (ResourceFactory/createStatement
@@ -110,29 +105,30 @@
      (ResourceFactory/createTypedLiteral
       o))))
 
-(defn get-subjects
+(defn- get-subjects
   "Returns a sequence of KWIs corresponding ot subjects in `g`"
   [g]
   (->> (.listSubjects g)
        (iterator-seq)
-       (map interpret-binding-element)))
+       (map interpret-binding-element)
+       (set)))
 
-(defn get-normal-form
+(defn- get-normal-form
   "Returns IGraph normal form representaion of `g`."
   [g]
   (rdf/query-for-normal-form query-jena-model g))
 
-(defn do-get-p-o
+(defn- do-get-p-o
   "Implements get-p-o for Jena"
   [g s]
   (rdf/query-for-p-o query-jena-model g s))
 
-(defn do-get-o
+(defn- do-get-o
   "Implements get-o for Jena"
   [g s p]
   (rdf/query-for-o query-jena-model g s p))
 
-(defn do-ask
+(defn- do-ask
   "Implements ask for Jena"
   [g s p o]
   (rdf/ask-s-p-o ask-jena-model  g s p o))
@@ -236,7 +232,6 @@
     2 (let [[s p] v]
         (doseq [o (g s p)]
           (remove-from-graph ^:vector [s p o])))))
-
 
 
 (defmethod remove-from-graph [JenaGraph :vector-of-vectors]
