@@ -1,0 +1,297 @@
+
+
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#>.
+@prefix dct: <http://purl.org/dc/terms/>.
+@prefix skos: <http://www.w3.org/2004/02/skos/core#>.
+@prefix sh: <http://www.w3.org/ns/shacl#>.
+@prefix ontolex: <http://www.w3.org/ns/lemon/ontolex#>.
+@prefix lime: <http://www.w3.org/ns/lemon/lime#>.
+@prefix hanzi: <http://rdf.naturallexicon.org/zh/written/>.
+@prefix cedict: <http://rdf.naturallexicon.org/zh/cedict/>.
+@prefix cmn: <http://rdf.naturallexicon.org/zh/cmn/>.
+@prefix zh:<http://rdf.naturallexicon.org/zh/ont#>.
+@prefix en:<http://rdf.naturallexicon.org/en/ont#>.
+@prefix natlex: <http://rdf.naturallexicon.org/ont#>.
+
+@base <http://rdf.naturallexicon.org/cedict-schema.ttl>.
+
+<> a owl:Ontology ;
+    owl:imports <http://www.w3.org/ns/lemon/ontolex>;
+    .
+
+<>
+    dct:description """
+
+    This ontology pertains to representations of Chinese Lexical
+    information, particularly to RDF translations of CEDICT, available
+    from
+    <https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz>,
+    Discussed at <https://www.mdbg.net/chinese/dictionary?page=cedict>
+      
+    Licenced under <https://creativecommons.org/licenses/by-sa/3.0/>.
+
+    Per the conditions of said license, this RDF representation is
+    licensed under the same terms.
+
+    Chinese has a couple of peculiarities. Its written form extends
+    over a number of dialects with radically different
+    pronunciations. There is no morphology to speak of, so each form
+    is canonical. Part-of-speech also tends to be fluid and
+    context-dependent.
+
+    CEDICT's English representations are descriptions, some subset of
+    these descriptions may be aligned to English lexica, but this file
+    renders these descriptions as 'glosses'.
+     
+    The following new constructs are defined:
+    * zh:Cedict, naming the lexicon
+    * zh:ChineseForm, subsumed by ontolex:Form
+    * zh:CedictEntry, a ontolex:LexicalEntry in zh:Cedict.
+    * natlex:inLexicon owl:inverseOf lime:entry, to facilitate definintion of 
+      zh:CedictEntry
+    * A new subclass of zh:ChineseForm is defined for every written 
+      form, restricted in its ontolex:writtenRep, instances of which
+      should provide pronunciations within and across dialects.
+    * zh:label, a subproperty of rdfs:label providing fast access to each
+      written form.
+    * zh:MandarinForm a subclass of said new subclass, with ontolex:pron
+      defined with a zh:pinyin specification.
+    * zh:pinyin, a sub-property of ontolex:phoneticRep, specifying pinyin
+    * en:gloss, an English description of each lexical sense.
+    
+    These Ontolex constructs are used directly:
+    * ontolex:sense
+    * ontolex:LexicalSense, each instance of which is given an en:gloss
+      assertion (see description below) Each lexical sense is named
+      with a numeric #-fragment appended to its corresponding
+      ChineseForm.
+
+    CEDICT provides written forms in both simplified and traditional
+    forms.  The simplified form, being the offical form for the
+    People's Republic of China, are tagged as @zh. When the
+    traditional form for an entry differs from the simplied form, a
+    second writtenRep assertion is made, tagged as @zh-Hant.
+
+    Namespaces
+
+    The following namespaces are introduced (with suggested prefixes):
+
+@prefix hanzi: <http://rdf.naturallexicon.org/zh/written/>.
+
+    A container for chinese written forms.
+    
+@prefix cedict: <http://rdf.naturallexicon.org/zh/cedict/>.
+
+    A container for lexical entries and senses associated with CEDICT.
+
+@prefix cmn: <http://rdf.naturallexicon.org/zh/cmn/>.
+
+    A container for Mandarin forms.
+    
+@prefix zh:<http://rdf.naturallexicon.org/zh/ont#>.
+
+    The home of ontological constructs relating to Chinese.
+    
+@prefix en:<http://rdf.naturallexicon.org/en/ont#>.
+
+    The home of ontological constructs relating to English.
+    
+@prefix natlex: <http://rdf.naturallexicon.org/ont#>.
+    
+    The home of ontological constructs that apply to no particular language.
+    
+    """;
+        .
+
+
+    
+# CHINESE WRITTEN FORMS
+
+    zh:ChineseForm
+    rdfs:subClassOf ontolex:Form;
+    rdfs:subClassOf [
+        a owl:Restriction;
+        owl:onProperty dct:language; 
+        owl:hasValue <http://www.lexvo.org/page/iso639-1/zh>;
+    ];
+    rdfs:subClassOf [
+        a owl:Restriction;
+        owl:onProperty ontolex:canonicalForm;
+        owl:hasSelf "true"^^xsd:boolean;
+    ];
+   dct:description """ 
+
+    Refers to the class of forms written in Chinese. Fully specified
+    forms should be grounded in a specific Chinese dialect.
+
+       For each lexical entry, a subclass dedicated to the written
+        Form should be declared, with an owl restriction on its
+        lex:writtenRep.  Forms in specific dialects or variations in
+        pronunciation within the same dialect should then be instances
+        of this class, specifying pronunciation with a sub-property of
+        ontolex:phoneticRep.
+        
+        For example, 王 (king) can take two pronunciations (2nd or 4th
+        tone).
+
+    hanzi:王
+      rdfs:subClassOf zh:ChineseForm;
+      rdfs:subClassOf [a owl:restriction;
+                       owl:onProperty ontolex:writtenRep;
+                       owl:hasValue "王"@zh].
+
+    cmn:王-wáng a zh:MandarinForm;
+      zh:writtenForm hanzi:王;
+      zh:pinyin "wáng"@zh-Latn-pinyin.
+
+    cmn:王-wàng a zh:MandarinForm;
+      zh:writtenForm hanzi:王;
+      zh:pinyin "wàng"@zh-Latn-pinyin.
+
+        """;
+ 
+    .
+
+
+# Cedict instance
+    zh:Cedict a lime:Lexicon;
+    dct:definition """
+    Refers to the Chinese lexicon from CEDICT rendered in RDF.
+    """;
+    lime:language <http://www.lexvo.org/page/iso639-1/zh>;
+    dct:source <https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz>;
+    .
+
+#  in lexicon property
+    natlex:inLexicon owl:inverseOf lime:entry;
+    dct:description """
+    Inverse of lime:entry to facilitate definition of zh:CedictEntry.
+    """;
+    .
+
+# CEDICT entry class
+    zh:CedictEntry rdfs:subClassOf ontolex:LexicalEntry;
+    dct:definition """
+    Refers to lexical entries in the Cedict lexicon.
+    """;
+    rdfs:subClassOf [a owl:Restriction;
+                     owl:onProperty natlex:inLexicon;
+                     owl:hasValue zh:Cedict;
+                     ];
+    .
+
+# SHACL for writtenRep in Chinese written forms
+    zh:writtenRepShape a sh:NodeShape;
+    dct:description """ 
+    Written rep of Chinese Written Forms should be tagged as Chinese.
+ """;
+    sh:targetClass zh:ChineseForm;
+    sh:property [
+        sh:path ontolex:writtenRep;
+        sh:languageIn ("zh" "zh-Hant" "zh-Hans");
+        ];
+    .
+
+# Mandarin form class
+    zh:MandarinForm rdfs:subClassOf zh:ChineseForm;
+    dct:description """
+        Refers to a part of the Mandarin vocabulary.
+        """;
+
+    .
+# mandarin form of property
+
+    zh:writtenForm rdfs:subPropertyOf rdf:type;
+    dct:description """
+        <mandarin form> zh:writtenForm <writtenForm>
+        
+        Asserts that <mandarin form> is the mandarin pronunciation of 
+        <written Form>
+        Where
+        <written form> restricts ontolex:writtenRep to its specfic string of 
+        characters.
+        """;
+    .
+    
+# zh-label
+    zh:label rdfs:subPropertyOf rdfs:label;
+    rdfs:domain zh:ChineseForm;
+    dct:description """
+        A label on a ChineseForm, naming its associated chinese
+        character string.
+        """;
+    .
+
+# SHACL for zh:label
+    zh:labelShape a sh:NodeShape;
+    dct:description """ zh:label should range to Chinese only.  """;
+    sh:targetClass zh:ChineseForm;
+    sh:property [
+        sh:path zh:label;
+        sh:languageIn ("zh" "zh-Hant" "zh-Hans");
+        ];
+    .
+
+# pinyin property
+    zh:pinyin rdfs:subPropertyOf ontolex:phoneticRep;
+    rdfs:domain zh:MandarinForm;
+    dct:description """
+
+        <mandarin expr> zh:pinyin "<pron>"@zh-Latn-pinyin.
+
+    Asserts that <mandarin expr> is prounounced in Mandarin per <pron>,
+    interpreted as <https://en.wikipedia.org/wiki/Pinyin>.
+    
+    Note that other dialects would require their own pronounciation
+    specification for the same written expression.
+
+    Tones may be indicated with diacritics on the vowels, or by
+    numbers 1-5, which have well-known mappings to the four mandarin
+    tones. 5 indicates a neutral tone.
+    
+    """;
+        owl:sameAs <http://www.wikidata.org/prop/P1721>;
+        .
+
+# SHACL for zh:pinyin
+    zh:pinyinShape a sh:NodeShape;
+    dct:description """ zh:pinyin should range to zh-Latn-pinyin only.  """;
+    sh:targetClass zh:MandarinForm;
+    sh:property [
+        sh:path zh:pinyin;
+        sh:languageIn ("zh-Latn-pinyin");
+        ];
+    .
+
+
+# English gloss property
+    en:gloss rdfs:subPropertyOf skos:definition;
+    dct:description """
+        <expression> en:gloss "<gloss>"@en.
+
+    Asserts that <expression> has been described in English as
+    <gloss>, and MAY serve as a basis for asserting an actual
+    translation.
+    
+    """; .
+
+# SHACL for en:gloss
+    en:glossShape a sh:NodeShape;
+    dct:description """ enGloss should range to English only.  """;
+    sh:targetClass zh:ChineseForm;
+    sh:property [
+        sh:path en:gloss;
+        sh:languageIn ("en");
+        ];
+    .
+
+
+
+
+
+
+ 
+    
