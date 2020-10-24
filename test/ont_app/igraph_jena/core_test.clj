@@ -6,11 +6,15 @@
    [ont-app.rdf.core :as rdf]
    [ont-app.vocabulary.core :as voc]
    [ont-app.igraph.core :refer :all]
+   [ont-app.igraph.core-test :as ig-test]
    [ont-app.graph-log.core :as glog]
    )
   (:import
-   [org.apache.jena.riot RDFDataMgr]
-   [org.apache.jena.query Dataset
+   [org.apache.jena.riot
+    RDFDataMgr]
+   [org.apache.jena.query
+    Dataset
+    DatasetFactory
     QueryExecution
     QueryExecutionFactory
     QueryFactory]
@@ -30,6 +34,8 @@
   :vann/preferredNamespaceUri "http://rdf.example.com#"
   })
 
+(def ds (DatasetFactory/createMem))
+
 (def data (io/file  "test/resources/test-data.ttl"))
 
 (def g (make-jena-graph (RDFDataMgr/loadModel (str data))))
@@ -46,6 +52,8 @@
            :rdfs/label #{"\"Thing 2@en\""},
            :rdf/type #{:eg/Thing}}}
          (normal-form g))))
+
+(reset! ig-test/initial-graph (make-jena-graph 
 ;; TODO: We should be interpreting xsd and tagged literals.
 
 (comment 
