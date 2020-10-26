@@ -10,6 +10,8 @@
    [ont-app.graph-log.core :as glog]
    )
   (:import
+   [org.apache.jena.rdf.model.impl
+    LiteralImpl]
    [org.apache.jena.riot RDFDataMgr]
    [org.apache.jena.query
     Dataset
@@ -32,7 +34,17 @@
 
 (def ontology @ont/ontology-atom)
 
-(defn- interpret-binding-element
+(defmethod rdf/render-literal LiteralImpl
+  [elt]
+  (def ^:dynamic *elt* elt)
+  (if (re-find #"langString$" (.getDatatypeURI elt))
+    (ont-app.vocabulary.lstr/->LangStr (.getLexicalForm elt)
+                                       (.getLanguage elt))
+    ;; else it's some other kinda literal
+    (.getValue elt)))
+
+
+(defn interpret-binding-element
   "Returns a KWI or literal value as appropriate to `elt`
   Where
   - `elt` is bound to some variable in a query posed to a jena model."
@@ -45,7 +57,7 @@
     ;; else it's a literal
     (rdf/render-literal elt)))
 
-(defn- ask-jena-model
+(defn ask-jena-model
   "Returns true/false for ASK query `q` posed to Jena model `g`"
   [g q]
   (let [qe (-> (QueryFactory/create q)
@@ -55,7 +67,7 @@
       (finally
         (.close qe)))))
 
-(defn- query-jena-model
+(defn query-jena-model
   "Returns (`binding-map`, ...) for `q` posed to `g`
   Where
   - `binding-map` := {`var` `value`, ...}
@@ -90,7 +102,7 @@
       (finally
         (.close qe))))))
 
-(defn- make-statement
+(defn make-statement
   "Returns a Jena Statment for `s` `p` and `o`"
   [s p o]
   (ResourceFactory/createStatement
@@ -102,16 +114,18 @@
      (ResourceFactory/createResource
       (voc/uri-for o))
      ;; else it's not a uri
-     (ResourceFactory/createTypedLiteral
-      o))))
+     (if (instance? ont_app.vocabulary.lstr.LangStr o)
+       (ResourceFactory/createLangLiteral (str o) (.lang o))
+       ;; else not a lang tag
+       (ResourceFactory/createTypedLiteral o)))))
 
-(defn- get-subjects
+(defn get-subjects
   "Returns a sequence of KWIs corresponding ot subjects in `g`"
   [g]
   (->> (.listSubjects g)
        (iterator-seq)
        (map interpret-binding-element)
-       (set)))
+       (lazy-seq)))
 
 (defn- get-normal-form
   "Returns IGraph normal form representaion of `g`."
@@ -134,17 +148,15 @@
   (rdf/ask-s-p-o ask-jena-model  g s p o))
 
 (defrecord JenaGraph
-    [
-     model
-     ]
+    [model]
   igraph/IGraph
-  (subjects [_] get-subjects model)
+  (subjects [_] (get-subjects model))
   (normal-form [_] (get-normal-form model))
   (get-p-o [_ s] (do-get-p-o model s))
-  (get-o [_ s p] (do-get-p-o model s))
+  (get-o [_ s p] (do-get-o model s p))
   (ask [_ s p o] (do-ask model s p o))
   (query [_ q] (query-jena-model model q))
-  (mutability [_] :igraph/Mutable)
+  (mutability [_] ::igraph/mutable)
 
   clojure.lang.IFn
   (invoke [g] (normal-form g))
@@ -158,8 +170,10 @@
   )
 
 (defn make-jena-graph
-  [model]
-  (new JenaGraph model))
+  ([model]
+   (new JenaGraph model))
+  ([ds kwi]
+   (new JenaGraph (.getNamedModel ds (voc/uri-for kwi)))))
 
 
 (defmethod add-to-graph [JenaGraph :normal-form]

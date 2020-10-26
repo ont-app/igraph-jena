@@ -41,19 +41,42 @@
 (def g (make-jena-graph (RDFDataMgr/loadModel (str data))))
 
 (deftest test-normal-form
-  (is (= 
-         {:eg/Thing1
-          {:eg/number #{"\"1^^http://www.w3.org/2001/XMLSchema#integer\""},
-           :rdfs/label #{"\"Thing 1@en\""},
+  (is (= {:eg/Thing1
+          {:eg/number #{1},
+           :rdfs/label #{#lstr "Thing 1@en"},
            :rdf/type #{:eg/Thing}},
           :http://rdf.example.com #:rdf{:type #{:eg/TestFile}},
           :eg/Thing2
-          {:eg/number #{"\"2^^http://www.w3.org/2001/XMLSchema#integer\""},
-           :rdfs/label #{"\"Thing 2@en\""},
+          {:eg/number #{2},
+           :rdfs/label #{#lstr "Thing 2@en"},
            :rdf/type #{:eg/Thing}}}
          (normal-form g))))
 
-(reset! ig-test/initial-graph (make-jena-graph 
+(reset! ig-test/initial-graph (make-jena-graph ds :ig-test/initial-graph))
+(let [eg (make-jena-graph ds :ig-test/eg-graph)]
+  (add! eg ig-test/eg-data)
+  (reset! ig-test/eg eg))
+
+(let [other-eg (make-jena-graph ds :ig-test/other-eg)]
+  (add! other-eg ig-test/other-eg-data)
+  (reset! ig-test/other-eg other-eg))
+
+(let [eg-with-types (make-jena-graph ds :ig-test/eg-with-types)]
+  (add! eg-with-types ig-test/types-data)
+  (add! eg-with-types ig-test/eg-data)
+  (reset! ig-test/eg-with-types eg-with-types))
+
+(let [eg-for-cardinality-1 (make-jena-graph ds :ig-test/eg-for-cardinality-1)]
+  (add! eg-for-cardinality-1 (@ig-test/eg-with-types))
+  (add! eg-for-cardinality-1 ig-test/cardinality-1-appendix)
+  (reset! ig-test/eg-for-cardinality-1 eg-for-cardinality-1))
+
+(deftest readme-examples
+  (testing "core test readme"
+    (ig-test/readme))
+  (testing "readme mutable"
+    (ig-test/readme-mutable)))
+
 ;; TODO: We should be interpreting xsd and tagged literals.
 
 (comment 
