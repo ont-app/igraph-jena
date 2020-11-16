@@ -1,5 +1,6 @@
 (ns ont-app.igraph-jena.core
   (:require
+   [clojure.java.io :as io]
    [ont-app.igraph.core :as igraph :refer :all]
    [ont-app.igraph.graph :as native-normal]
    [ont-app.vocabulary.core :as voc]
@@ -254,3 +255,26 @@
   (doseq [v vs]
     (remove-from-graph g ^:vector v))
   g)
+
+(defn read-rdf
+  "Returns `g` for `rdf-file`
+  Where
+  - `g` is an igraph
+  - `rdf-file` is an io/file in one of the RDF formats"
+  [rdf-file]
+  (make-jena-graph (RDFDataMgr/loadModel (str rdf-file))))
+
+
+(defn write-rdf
+  "Side-effect: writes contents of `g` to `target` in `fmt`
+  Where
+  - `g` is a jena igraph
+  - `target` names a file
+  - `fmt` names an RDF fmt, e.g. 'Turtle'
+  - `base` (optional) isthe base URI of any relative URIs. Default is nil."
+  ([g target fmt]
+   (write-rdf g target fmt nil))
+  ([g target fmt base]
+  (with-open [out (io/output-stream target)]
+    (.write (.getWriter (:model g) fmt) (:model g) out base))))
+

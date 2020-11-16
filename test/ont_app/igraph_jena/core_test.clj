@@ -38,7 +38,8 @@
 
 (def data (io/file  "test/resources/test-data.ttl"))
 
-(def g (make-jena-graph (RDFDataMgr/loadModel (str data))))
+(def g (read-rdf data))
+
 
 (deftest test-normal-form
   (is (= {:eg/Thing1
