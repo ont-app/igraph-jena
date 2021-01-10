@@ -4,6 +4,7 @@
    [ont-app.igraph.core :as igraph :refer [add]]
    [ont-app.igraph.graph :as g :refer [make-graph]]
    [ont-app.vocabulary.core :as voc]
+   [ont-app.igraph-vocabulary.core :as igv]
    )
   )
 (voc/put-ns-meta!
@@ -14,6 +15,8 @@
   })
 
 (def ontology-atom (atom (make-graph)))
+
+(swap! ontology-atom igraph/union igv/ontology)
 
 (defn update-ontology! [to-add]
   (swap! ontology-atom add to-add))

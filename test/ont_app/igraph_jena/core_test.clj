@@ -46,7 +46,7 @@
           {:eg/number #{1},
            :rdfs/label #{#lstr "Thing 1@en"},
            :rdf/type #{:eg/Thing}},
-          :http://rdf.example.com #:rdf{:type #{:eg/TestFile}},
+          :http://rdf.example.com/test-file.ttl #:rdf{:type #{:eg/TestFile}},
           :eg/Thing2
           {:eg/number #{2},
            :rdfs/label #{#lstr "Thing 2@en"},
@@ -72,7 +72,7 @@
   (add! eg-for-cardinality-1 ig-test/cardinality-1-appendix)
   (reset! ig-test/eg-for-cardinality-1 eg-for-cardinality-1))
 
-(deftest readme-examples
+(deftest igraph-readme-examples
   (testing "core test readme"
     (ig-test/readme))
   (testing "readme mutable"

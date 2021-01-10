@@ -7,26 +7,90 @@ Part of the ont-app library, dedicated to Ontology-driven development.
 
 ## Usage
 
-Create the graph thus:
+Require thus:
 
 ```
 (ns my-ns
   (:require 
     [ont-app.igraph-jena.core :as jgraph])
   (:import 
-    [org.apache.jena.riot RDFDataMgr]))
-  
-(jgraph/make-jena-graph (RDFDataMgr/loadModel "my-file.ttl"))
+    ;; any Jena-specific stuff
+    ))
 ```
+    
+### Creating a graph:
+
+Create the graph thus:
+
+With no arguments (returns a Jena default model):
+
+```
+> (def g (jgraph/make-jena-graph))
+> (type (:model g))
+org.apache.jena.rdf.model.impl.ModelCom
+> 
+```
+
+We can specify a file
+```
+> (def g (jgraph/make-jena-graph (RDFDataMgr/loadModel "resources/test-data.ttl"))
+```
+Or equivalently use the `read-rdf` function:
+
+```
+> (def g (jgraph/read-rdf "resources/test-data.ttl"))
+
+```
+
+If we have an existing Jena Model, we can define an IGgraph wrapper around it:
+```
+> (def g (jgraph/make-jena-graph <existing-jena-model>))
+```
+
+... or if we have a Jena DataSet and the name of a graph (nil for default graph):
+
+```
+> (def g (jgraph/make-jena-graph <existing-dataset> <graph-name-or-nil>))
+```
+### Member access and manipulation
 
 Then apply the standard methods for [IGraph member
 access](https://github.com/ont-app/igraph#h2-igraph-protocol), with
 [mutable](https://github.com/ont-app/igraph#IGraphMutable) member
 manipulation operations `add!` and `subtract!`.
 
+For example:
+
+```
+> (g :eg/Thing2)
+{:eg/number #{2},
+ :rdfs/label #{#lstr "Thing 2@en"},
+ :rdf/type #{:eg/Thing}}
+> 
+> (g :eg/Thing2 :eg/number)
+#{2}
+>
+> (g :eg/Thing2 :eg/number 2)
+true
+> 
+> (add! g [[:eg/Thing3 :rdf/type :eg/Thing]
+           [:eg/Thing3 :rdfs/label #lstr"Thing3@en"]
+           [:eg/Thing3 :rdf/number 3]])
+            
+```
+
+Set the IGraph docs for more details.
+
+### Serializing output
+
+```
+> (write-rdf g "/tmp/testing.ttl" "turtle")
+> 
+```
+
 ## License
 
-Copyright © 2020 Eric D. Scott
+Copyright © 2020-21 Eric D. Scott
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at

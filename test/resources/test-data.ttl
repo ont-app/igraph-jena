@@ -5,7 +5,7 @@
 @prefix sh: <http://www.w3.org/ns/shacl#>.
 @prefix eg: <http://rdf.example.com#>.
 
-@base <http://rdf.example.com#test-data.ttl>.
+@base <http://rdf.example.com/test-file.ttl>.
 
 <> a eg:TestFile.
 

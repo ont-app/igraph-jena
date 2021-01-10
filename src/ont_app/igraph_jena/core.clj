@@ -7,13 +7,15 @@
    [ont-app.vocabulary.format :as fmt]
    [ont-app.igraph-jena.ont :as ont]
    [ont-app.rdf.core :as rdf]
-   [ont-app.graph-log.levels :refer :all]
-   [ont-app.graph-log.core :as glog]
+   ;; [ont-app.graph-log.levels :refer :all]
+   ;; [ont-app.graph-log.core :as glog]
    )
   (:import
    [org.apache.jena.rdf.model.impl
     LiteralImpl]
-   [org.apache.jena.riot RDFDataMgr]
+   [org.apache.jena.riot
+    RDFDataMgr
+    RDFFormat]
    [org.apache.jena.query
     Dataset
     QueryExecution
@@ -21,6 +23,7 @@
     QueryFactory]
     [org.apache.jena.rdf.model
      Model
+     ModelFactory
      Resource
      ResourceFactory
      ]
@@ -61,6 +64,7 @@
 (defn ask-jena-model
   "Returns true/false for ASK query `q` posed to Jena model `g`"
   [g q]
+
   (let [qe (-> (QueryFactory/create q)
                (QueryExecutionFactory/create g))]
     (try
@@ -121,9 +125,9 @@
        (ResourceFactory/createTypedLiteral o)))))
 
 (defn get-subjects
-  "Returns a sequence of KWIs corresponding ot subjects in `g`"
-  [g]
-  (->> (.listSubjects g)
+  "Returns a sequence of KWIs corresponding ot subjects in `jena-model`"
+  [jena-model]
+  (->> (.listSubjects jena-model)
        (iterator-seq)
        (map interpret-binding-element)
        (lazy-seq)))
@@ -171,6 +175,8 @@
   )
 
 (defn make-jena-graph
+  ([]
+   (make-jena-graph (ModelFactory/createDefaultModel)))
   ([model]
    (new JenaGraph model))
   ([ds kwi]
@@ -276,5 +282,10 @@
    (write-rdf g target fmt nil))
   ([g target fmt base]
   (with-open [out (io/output-stream target)]
-    (.write (.getWriter (:model g) fmt) (:model g) out base))))
-
+    (.write (.getWriter (:model g) fmt)
+            (:model g)
+            out
+            (if (keyword? base)
+              (voc/uri-for base)
+              base)))))
+  

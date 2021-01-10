@@ -6,6 +6,8 @@
   :dependencies [;; deps ambiguities
                  [com.cognitect/transit-clj "1.0.324"]
                  [com.fasterxml.jackson.core/jackson-core "2.10.2"]
+                 [org.slf4j/slf4j-api "1.7.30"]
+                 [org.clojure/tools.reader "1.3.2"]
                  ;; clojure
                  [org.clojure/clojure "1.10.1"]
                  [org.clojure/spec.alpha "0.2.187"]
@@ -16,13 +18,26 @@
                  [org.apache.jena/jena-iri "3.14.0"]
                  [org.slf4j/slf4j-simple "1.7.30"]
                  ;; Ont-app libs
-                 [ont-app/graph-log "0.1.1"]
-                 [ont-app/igraph "0.1.5"]
-                 [ont-app/igraph-vocabulary "0.1.2-SNAPSHOT"]
-                 [ont-app/vocabulary "0.1.2-SNAPSHOT"]
-                 [ont-app/rdf "0.1.1-SNAPSHOT"
+                 [ont-app/graph-log "0.1.1"
+                  :exclusions [org.clojure/clojurescript
+                               com.google.errorprone/error_prone_annotations
+                               ]]
+                 [ont-app/igraph "0.1.5"
+                  :exclusions [
+                               org.clojure/clojurescript
+                               com.google.errorprone/error_prone_annotations
+                                ]]
+                 [ont-app/igraph-vocabulary "0.1.2"
+                  :exclusions [org.clojure/clojurescript
+                               com.google.errorprone/error_prone_annotations
+                               ]]
+                 [ont-app/vocabulary "0.1.3"
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations]]
+                 [ont-app/rdf "0.1.1"
+                  :exclusions [org.clojure/clojurescript
+                               com.google.errorprone/error_prone_annotations
+                               ]]
                  ]
 
   ;; :main ^:skip-aot ont-app.igraph-jena.core
