@@ -1,4 +1,4 @@
-#<img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/igraph-jena
+<img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/igraph-jena
 
 This is a port of the Jena APIs to the
 [IGraph](https://github.com/ont-app/igraph) protocol.
@@ -6,6 +6,9 @@ This is a port of the Jena APIs to the
 Part of the ont-app library, dedicated to Ontology-driven development.
 
 ## Usage
+
+Available at [![Clojars Project](https://img.shields.io/clojars/v/ont-app/igraph-jena.svg)](https://clojars.org/ont-app/igraph-jena).
+
 
 Require thus:
 

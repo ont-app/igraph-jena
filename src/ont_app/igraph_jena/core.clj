@@ -40,7 +40,6 @@
 
 (defmethod rdf/render-literal LiteralImpl
   [elt]
-  (def ^:dynamic *elt* elt)
   (if (re-find #"langString$" (.getDatatypeURI elt))
     (ont-app.vocabulary.lstr/->LangStr (.getLexicalForm elt)
                                        (.getLanguage elt))
