@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [;; deps ambiguities
                  [com.cognitect/transit-clj "1.0.324"]
-                 [com.fasterxml.jackson.core/jackson-core "2.12.1"]
+                 [com.fasterxml.jackson.core/jackson-core "2.12.3"]
                  [org.slf4j/slf4j-api "1.7.30"]
                  [org.clojure/tools.reader "1.3.4"]
                  ;; clojure
@@ -15,10 +15,10 @@
                  [org.apache.jena/jena-core "3.17.0"]
                  [org.apache.jena/jena-arq "3.17.0"]
                  [org.apache.jena/jena-base "3.17.0"]
-                 [org.apache.jena/jena-iri "3.17.0"]
+                 [org.apache.jena/jena-iri  "3.17.0"]
                  [org.slf4j/slf4j-simple "1.7.30"]
                  ;; Ont-app libs
-                 [ont-app/graph-log "0.1.1"
+                 [ont-app/graph-log "0.1.2"
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
                                ]]
