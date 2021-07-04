@@ -129,7 +129,7 @@
   (->> (.listSubjects jena-model)
        (iterator-seq)
        (map interpret-binding-element)
-       (lazy-seq)))
+       ))
 
 (defn- get-normal-form
   "Returns IGraph normal form representaion of `g`."
