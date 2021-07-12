@@ -4,12 +4,9 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [;; deps ambiguities
-                 [com.cognitect/transit-clj "1.0.324"]
-                 [com.fasterxml.jackson.core/jackson-core "2.12.3"]
-                 [org.slf4j/slf4j-api "1.7.30"]
-                 [org.clojure/tools.reader "1.3.4"]
+                 ;; none
                  ;; clojure
-                 [org.clojure/clojure "1.10.1"]
+                 [org.clojure/clojure "1.10.3"]
                  [org.clojure/spec.alpha "0.2.194"]
                  ;; 3rd party libs
                  [org.apache.jena/jena-core "3.17.0"]
@@ -22,7 +19,7 @@
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
                                ]]
-                 [ont-app/igraph "0.1.5"
+                 [ont-app/igraph "0.1.6-SNAPSHOT"
                   :exclusions [
                                org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
@@ -43,14 +40,9 @@
   ;; :main ^:skip-aot ont-app.igraph-jena.core
   :target-path "target/%s"
   :resource-paths ["resources"]
-  :plugins [[lein-codox "0.10.6"]
-            [lein-ancient "0.6.15"]
-            ]
   :source-paths ["src"]
   :test-paths ["src" "test"]
-
   :codox {:output-path "doc"}
-
   :profiles {:uberjar {}
              :dev {:dependencies []
                    :resource-paths  ["resources" "test/resources" ]
