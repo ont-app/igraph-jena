@@ -1,4 +1,4 @@
-<img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/igraph-jena
+# <img src="http://ericdscott.com/NaturalLexiconLogo.png" alt="NaturalLexicon logo" :width=100 height=100/> ont-app/igraph-jena
 
 This is a port of the Jena APIs to the
 [IGraph](https://github.com/ont-app/igraph) protocol.
