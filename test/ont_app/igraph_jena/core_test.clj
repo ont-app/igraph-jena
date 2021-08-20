@@ -53,7 +53,6 @@
            :rdf/type #{:eg/Thing}}}
          (normal-form g))))
 
-(reset! ig-test/initial-graph (make-jena-graph ds :ig-test/initial-graph))
 (let [eg (make-jena-graph ds :ig-test/eg-graph)]
   (add! eg ig-test/eg-data)
   (reset! ig-test/eg eg))
@@ -72,11 +71,15 @@
   (add! eg-for-cardinality-1 ig-test/cardinality-1-appendix)
   (reset! ig-test/eg-for-cardinality-1 eg-for-cardinality-1))
 
+(reset! ig-test/mutable-eg (-> (make-jena-graph ds :ig-test/initial-graph)
+                               (add! ig-test/eg-data)))
 (deftest igraph-readme-examples
   (testing "core test readme"
     (ig-test/readme))
   (testing "readme mutable"
-    (ig-test/readme-mutable)))
+    (ig-test/readme-mutable)
+    ;; test issue #1...
+    (ig-test/readme-add!-long-vector)))
 
 ;; TODO: We should be interpreting xsd and tagged literals.
 

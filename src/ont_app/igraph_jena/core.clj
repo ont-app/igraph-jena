@@ -129,7 +129,7 @@
   (->> (.listSubjects jena-model)
        (iterator-seq)
        (map interpret-binding-element)
-       (lazy-seq)))
+       ))
 
 (defn- get-normal-form
   "Returns IGraph normal form representaion of `g`."
@@ -192,9 +192,16 @@
 
 (defmethod add-to-graph [JenaGraph :vector]
   [g v]
-  (.add (:model g) (apply make-statement v))
-  g)
-  
+  {:pre [(odd? (count v))
+         (>= (count v) 3)
+         ]
+   }
+  (let [collect-triple (fn [s g [p o]]
+                         (.add (:model g) (apply make-statement [s p o]))
+                         g)
+        ]
+    (reduce (partial collect-triple (first v)) g (partition 2 (rest v)))
+    g))
 
 (defmethod add-to-graph [JenaGraph :underspecified-triple]
   [g v]
@@ -251,7 +258,8 @@
             (remove-from-graph g ^:vector [s p o]))))
     2 (let [[s p] v]
         (doseq [o (g s p)]
-          (remove-from-graph ^:vector [s p o])))))
+          (remove-from-graph ^:vector [s p o]))))
+  g)
 
 
 (defmethod remove-from-graph [JenaGraph :vector-of-vectors]
