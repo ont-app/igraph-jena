@@ -20,7 +20,7 @@
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
                                ]]
-                 [ont-app/igraph "0.1.6-SNAPSHOT"
+                 [ont-app/igraph "0.1.7"
                   :exclusions [
                                org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
