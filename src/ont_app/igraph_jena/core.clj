@@ -7,8 +7,8 @@
    [ont-app.vocabulary.format :as fmt]
    [ont-app.igraph-jena.ont :as ont]
    [ont-app.rdf.core :as rdf]
-   ;; [ont-app.graph-log.levels :refer :all]
-   ;; [ont-app.graph-log.core :as glog]
+   [ont-app.graph-log.levels :refer :all]
+   [ont-app.graph-log.core :as glog]
    )
   (:import
    [org.apache.jena.rdf.model.impl
@@ -36,7 +36,18 @@
   }
  )
 
+
 (def ontology @ont/ontology-atom)
+
+(defonce query-template-defaults
+  (merge @rdf/query-template-defaults
+         {:rebind-_s "IRI(?_s)"
+          :rebind-_p "IRI(?_p)"
+          :rebind-_o "IF(isBlank(?_o), IRI(?_o), ?_o)"
+          }))
+
+(reset! rdf/query-template-defaults query-template-defaults)
+;; TODO: Eplore the trade-offs this way vs. (binding [rdf/query-template-defaults query-template-defaults]
 
 (defmethod rdf/render-literal LiteralImpl
   [elt]
@@ -52,11 +63,16 @@
   Where
   - `elt` is bound to some variable in a query posed to a jena model."
   [elt]
+  (trace ::StartingInterpretBindingElement
+         :elt elt)
   (if (instance? Resource elt)
     (if-let [uri (.getURI elt)]
-      (voc/keyword-for (str uri))
-      ;; else it's a blank node
-      (keyword "_" (str (.getId elt))))
+      (if (re-matches #"^_:.*" uri) ;; it's a URI-ified bnode
+        (keyword "_" (str "<" uri ">"))
+        ;; else it's a regular uri...
+        (voc/keyword-for (str uri)))
+      ;; else it's a bnode ResourceImpl
+      (keyword "_" (str "<_:" (.getId elt) ">")))
     ;; else it's a literal
     (rdf/render-literal elt)))
 
@@ -85,26 +101,29 @@
    (query-jena-model #(.execSelect %) g q))
   
   ([query-op g q]
-  (let [qe (-> (QueryFactory/create q)
-               (QueryExecutionFactory/create g))]
-    (try
-      (let [collect-binding-values (fn [b m k]
-                                     (assoc m (keyword k)
-                                            (let [v (.get b k)]
-                                              (interpret-binding-element
-                                               v))))
-            render-binding-as-map (fn [b]
-                                    (reduce (partial collect-binding-values
-                                                     b)
-                                            {}
-                                            (iterator-seq (.varNames b))))
+   (debug ::StartingQueryJenaModel
+          :g g
+          :q q)
+   (let [qe (-> (QueryFactory/create q)
+                (QueryExecutionFactory/create g))]
+     (try
+       (let [collect-binding-values (fn [b m k]
+                                      (assoc m (keyword k)
+                                             (let [v (.get b k)]
+                                               (interpret-binding-element
+                                                v))))
+             render-binding-as-map (fn [b]
+                                     (reduce (partial collect-binding-values
+                                                      b)
+                                             {}
+                                             (iterator-seq (.varNames b))))
 
-            bindings (iterator-seq (query-op qe)) ;;(.execSelect qe))
-            result (doall (map render-binding-as-map bindings))
-            ]
-        result)
-      (finally
-        (.close qe))))))
+             bindings (iterator-seq (query-op qe)) ;;(.execSelect qe))
+             result (doall (map render-binding-as-map bindings))
+             ]
+         result)
+       (finally
+         (.close qe))))))
 
 (defn make-statement
   "Returns a Jena Statment for `s` `p` and `o`"
@@ -134,22 +153,30 @@
 (defn- get-normal-form
   "Returns IGraph normal form representaion of `g`."
   [g]
-  (rdf/query-for-normal-form query-jena-model g))
+  ;;(binding [rdf/query-template-defaults query-template-defaults]
+  (rdf/query-for-normal-form query-jena-model g)
+  )
 
 (defn- do-get-p-o
   "Implements get-p-o for Jena"
   [g s]
-  (rdf/query-for-p-o query-jena-model g s))
+  (rdf/query-for-p-o query-jena-model g s)
+  #_(binding [rdf/query-template-defaults query-template-defaults]
+    (rdf/query-for-p-o query-jena-model g s)))
 
 (defn- do-get-o
   "Implements get-o for Jena"
   [g s p]
-  (rdf/query-for-o query-jena-model g s p))
+  (rdf/query-for-o query-jena-model g s p)
+  #_(binding [rdf/query-template-defaults query-template-defaults]
+    (rdf/query-for-o query-jena-model g s p)))
 
 (defn- do-ask
   "Implements ask for Jena"
   [g s p o]
-  (rdf/ask-s-p-o ask-jena-model  g s p o))
+  (rdf/ask-s-p-o ask-jena-model  g s p o)
+  #_(binding [rdf/query-template-defaults query-template-defaults]
+    (rdf/ask-s-p-o ask-jena-model  g s p o)))
 
 (defrecord JenaGraph
     [model]
@@ -174,6 +201,12 @@
   )
 
 (defn make-jena-graph
+  "Returns an implementation of igraph using a `model` or a named model in `ds` named `kwi`
+  Where
+  - `model` is a jena model (optional; default is a jena default model)
+  - `ds` is a jena dataset to which we will declare a graph name with `kwi`
+  - `kwi` is a keyword identifier translatable to the URI of a named graph in `ds`
+  "
   ([]
    (make-jena-graph (ModelFactory/createDefaultModel)))
   ([model]

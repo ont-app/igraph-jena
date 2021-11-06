@@ -8,6 +8,7 @@
    [ont-app.igraph.core :refer :all]
    [ont-app.igraph.core-test :as ig-test]
    [ont-app.graph-log.core :as glog]
+   [ont-app.graph-log.levels :refer :all]
    )
   (:import
    [org.apache.jena.riot
@@ -27,6 +28,13 @@
 (glog/log-reset!)
 (glog/set-level! :glog/LogGraph :glog/OFF)
 
+(defn log-reset!
+  ([]
+   (log-reset! :glog/DEBUG))
+  ([level]
+   (glog/log-reset!)
+   (glog/set-level! level)))
+
 (voc/put-ns-meta!
  'com.example.rdf
  {
@@ -37,6 +45,8 @@
 (def ds (DatasetFactory/createMem))
 
 (def data (io/file  "test/resources/test-data.ttl"))
+
+#_(def data (io/file  "test/resources/cedict-schema.ttl"))
 
 (def g (read-rdf data))
 
@@ -71,9 +81,12 @@
   (add! eg-for-cardinality-1 ig-test/cardinality-1-appendix)
   (reset! ig-test/eg-for-cardinality-1 eg-for-cardinality-1))
 
-(reset! ig-test/mutable-eg (-> (make-jena-graph ds :ig-test/initial-graph)
-                               (add! ig-test/eg-data)))
+
+
+
 (deftest igraph-readme-examples
+  (reset! ig-test/mutable-eg (-> (make-jena-graph);;  :ig-test/initial-graph)
+                                 (add! ig-test/eg-data)))
   (testing "core test readme"
     (ig-test/readme))
   (testing "readme mutable"

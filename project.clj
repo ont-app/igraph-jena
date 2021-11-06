@@ -4,22 +4,33 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [;; deps ambiguities
-                 ;; none
+                 [cheshire "5.10.1"]
+                 [com.fasterxml.jackson.dataformat/jackson-dataformat-smile "2.12.4"]
                  ;; clojure
                  [org.clojure/clojure "1.10.3"]
                  [org.clojure/spec.alpha "0.2.194"]
                  ;; 3rd party libs
-                 [org.apache.jena/jena-core "3.17.0"]
-                 [org.apache.jena/jena-arq "3.17.0"]
-                 [org.apache.jena/jena-base "3.17.0"]
-                 [org.apache.jena/jena-iri  "3.17.0"]
-                 [org.slf4j/slf4j-simple "1.7.30"]
-                 ;; Ont-app libs
-                 [ont-app/graph-log "0.1.2"
+                 [org.apache.jena/jena-core "3.17.0"
+                  :exclusions [com.fasterxml.jackson.core/jackson-core
+                               ]
+                  ]
+                 [org.apache.jena/jena-arq "3.17.0"
+                  :exclusions [com.fasterxml.jackson.core/jackson-core
+                               ]
+                  ]
+                 [org.apache.jena/jena-base "3.17.0"
+                  :exclusions [com.fasterxml.jackson.core/jackson-core
+                               ]
+                  ]
+                 [org.apache.jena/jena-iri  "3.17.0"
+                  :exclusions [com.fasterxml.jackson.core/jackson-core
+                               ]
+                  ]
+                 [ont-app/graph-log "0.1.4"
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
                                ]]
-                 [ont-app/igraph "0.1.6-SNAPSHOT"
+                 [ont-app/igraph "0.1.7"
                   :exclusions [
                                org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
@@ -31,7 +42,7 @@
                  [ont-app/vocabulary "0.1.3"
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations]]
-                 [ont-app/rdf "0.1.2"
+                 [ont-app/rdf "0.1.3"
                   :exclusions [org.clojure/clojurescript
                                com.google.errorprone/error_prone_annotations
                                ]]
