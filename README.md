@@ -45,7 +45,7 @@ Or equivalently use the `read-rdf` function:
 
 ```
 
-If we have an existing Jena Model, we can define an IGgraph wrapper around it:
+If we have an existing Jena Model, we can define an IGraph wrapper around it:
 ```
 > (def g (jgraph/make-jena-graph <existing-jena-model>))
 ```
@@ -90,6 +90,12 @@ Set the IGraph docs for more details.
 > (write-rdf g "/tmp/testing.ttl" "turtle")
 > 
 ```
+
+## See also
+
+- [ont-app/igraph](https://github.com/ont-app/igraph) defines the IGraph protocols.
+- [igraph/vocabulary](https://github.com/ont-app/vocabulary) provides support for mapping between namespaced keywords and URIs.
+- [igraph/graph-log](https://github.com/ont-app/graph-log) provides a graph-based logging facility useful for debugging.
 
 ## License
 
