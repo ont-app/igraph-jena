@@ -1,3 +1,4 @@
+
 (defproject ont-app/igraph-jena "0.1.2-SNAPSHOT"
   :description "Library to port the Apache Jena APIs to the ont-app/iGraph protocol"
   :url "https://github.com/ont-app/igraph-jena"
