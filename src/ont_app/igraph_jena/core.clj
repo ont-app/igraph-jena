@@ -88,11 +88,12 @@
         (.close qe)))))
 
 (defn query-jena-model
-  "Returns (`binding-map`, ...) for `q` posed to `g`
+  "Returns (`binding-map`, ...) for `q` posed to `g` using `query-op`
   Where
   - `binding-map` := {`var` `value`, ...}
   - `q` is a SPARQL query
   - `g` is a jena model
+  - `query-op` is the jena query operation (optional. defualt is #(.execSelect %)
   - `var` is a keyword corresponding to a variable in `q`
   - `value` is an interpretation of the value bound to `var`
     this will be either a KWI or a literal, as appropriate.

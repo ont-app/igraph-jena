@@ -10,11 +10,12 @@ Where
 - `ds` is a jena dataset to which we will declare a graph name with `kwi`
 - `kwi` is a keyword identifier translatable to the URI of a named graph in `ds`
 </pre></div></div><div class="public anchor" id="var-make-statement"><h3>make-statement</h3><div class="usage"><code>(make-statement s p o)</code></div><div class="doc"><pre class="plaintext">Returns a Jena Statment for `s` `p` and `o`
-</pre></div></div><div class="public anchor" id="var-ontology"><h3>ontology</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-query-jena-model"><h3>query-jena-model</h3><div class="usage"><code>(query-jena-model g q)</code><code>(query-jena-model query-op g q)</code></div><div class="doc"><pre class="plaintext">Returns (`binding-map`, ...) for `q` posed to `g`
+</pre></div></div><div class="public anchor" id="var-ontology"><h3>ontology</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-query-jena-model"><h3>query-jena-model</h3><div class="usage"><code>(query-jena-model g q)</code><code>(query-jena-model query-op g q)</code></div><div class="doc"><pre class="plaintext">Returns (`binding-map`, ...) for `q` posed to `g` using `query-op`
 Where
 - `binding-map` := {`var` `value`, ...}
 - `q` is a SPARQL query
 - `g` is a jena model
+- `query-op` is the jena query operation (optional. defualt is #(.execSelect %)
 - `var` is a keyword corresponding to a variable in `q`
 - `value` is an interpretation of the value bound to `var`
   this will be either a KWI or a literal, as appropriate.
