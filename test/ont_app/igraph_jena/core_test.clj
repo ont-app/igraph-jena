@@ -42,7 +42,7 @@
   :vann/preferredNamespaceUri "http://rdf.example.com#"
   })
 
-(def ds (DatasetFactory/createMem))
+(def ds (DatasetFactory/create))
 
 (def data (io/file  "test/resources/test-data.ttl"))
 
