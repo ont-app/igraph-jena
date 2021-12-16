@@ -1,5 +1,5 @@
 
-(defproject ont-app/igraph-jena "0.1.3"
+(defproject ont-app/igraph-jena "0.1.4-SNAPSHOT"
   :description "Library to port the Apache Jena APIs to the ont-app/iGraph protocol"
   :url "https://github.com/ont-app/igraph-jena"
   :license {:name "Eclipse Public License"
