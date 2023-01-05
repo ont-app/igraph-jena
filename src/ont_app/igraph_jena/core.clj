@@ -11,6 +11,8 @@
    [ont-app.graph-log.core :as glog]
    )
   (:import
+   [ont_app.vocabulary.lstr
+    LangStr]
    [org.apache.jena.rdf.model.impl
     LiteralImpl]
    [org.apache.jena.riot
@@ -274,12 +276,15 @@
     (voc/uri-for s))
    (ResourceFactory/createProperty
     (voc/uri-for p))
-   (if (keyword? o)
-     (ResourceFactory/createResource
-      (voc/uri-for o))
-     ;; else it's not a uri
-     (ResourceFactory/createTypedLiteral
-      o)))
+   (cond
+     (keyword? o)
+     (ResourceFactory/createResource (voc/uri-for o))
+
+     (instance? LangStr o)
+     (ResourceFactory/createLangLiteral (str o) (.lang o))
+
+     :else
+     (ResourceFactory/createTypedLiteral o)))
   g)
 
 (defmethod remove-from-graph [JenaGraph :underspecified-triple]
