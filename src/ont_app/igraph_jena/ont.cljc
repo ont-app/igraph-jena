@@ -4,9 +4,15 @@
    [ont-app.igraph.core :as igraph :refer [add]]
    [ont-app.igraph.graph :as g :refer [make-graph]]
    [ont-app.vocabulary.core :as voc]
+   [ont-app.rdf.core :as rdf-app]
+   [ont-app.rdf.ont :as rdf-ont]
    [ont-app.igraph-vocabulary.core :as igv]
    )
-  )
+  (:import
+   [org.apache.jena.riot
+    RDFFormat]
+  ))
+
 (voc/put-ns-meta!
  'ont-app.validation.ont
  {
@@ -14,12 +20,51 @@
   :vann/preferredNamespaceUri "http://rdf.naturallexicon.org/igraph-jena/ont#"
   })
 
-(def ontology-atom (atom (make-graph)))
+(def ontology-atom (atom @rdf-ont/ontology-atom))
 
 (swap! ontology-atom igraph/union igv/ontology)
 
 (defn update-ontology! [to-add]
   (swap! ontology-atom add to-add))
+
+
+;;;;;;;;
+;; RIOT
+;;;;;;;;
+
+(voc/put-ns-meta!
+ 'ont-app.igraph-jena.ont.riot.RDFFormat
+ {:vann/preferredNamespaceUri "http://rdf.naturallexicon.org/ns/org.apache.jena.riot.RDFFormat#"
+  :vann/preferredNamespacePrefix "riot-format"
+  })
+
+(update-ontology!
+ [[:riot-format/RiotFormat
+   :rdf/type :igraph/JavaClass
+   :igraph/compiledAs RDFFormat
+   :rdfs/comment "Some research is still needed to determine how this would inform our i/o"
+   ;; TODO: research how to use this for i/o
+   ]
+  [:igraph/JavaClass :rdfs/subClassOf :igraph/CompiledObject
+   :dc/description "A Java class available in a JAR"
+   ;; TODO: move this back to igv
+   ]
+  [:riot-format/JSONLD
+   :rdf/type :riot-format/RiotFormat
+   :dcat/mediaType :formats/JSON-LD
+   :igraph/compiledAs RDFFormat/JSONLD
+   ]
+  [:riot-format/JSONLD_COMPACT_FLAT
+   :rdf/type :riot-format/RiotFormat
+   :dcat/mediaType :formats/JSON-LD
+   :igraph/compiledAs RDFFormat/JSONLD_COMPACT_FLAT
+   ]
+  [:riot-format/TURTLE
+   :rdf/type :riot-format/RiotFormat
+   :dcat/mediaType :formats/Turtle
+   :igraph/compiledAs RDFFormat/TURTLE
+   ]
+  ])
 
 (comment ;; these are the RDF formats in jena. TODO integrate into ont.
 org.apache.jena.riot.RDFFormat/ABBREV <sf>

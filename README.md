@@ -67,7 +67,7 @@ For example:
 ```
 > (g :eg/Thing2)
 {:eg/number #{2},
- :rdfs/label #{#lstr "Thing 2@en"},
+ :rdfs/label #{#voc/lstr "Thing 2@en"},
  :rdf/type #{:eg/Thing}}
 > 
 > (g :eg/Thing2 :eg/number)
@@ -77,19 +77,122 @@ For example:
 true
 > 
 > (add! g [[:eg/Thing3 :rdf/type :eg/Thing]
-           [:eg/Thing3 :rdfs/label #lstr"Thing3@en"]
+           [:eg/Thing3 :rdfs/label #voc/lstr"Thing3@en"]
            [:eg/Thing3 :rdf/number 3]])
             
 ```
 
 Set the IGraph docs for more details.
 
-### Serializing output
+#### Support for encoding clojure containers in transit
+
+It is possible to store Clojure data directly in the graph encoded as
+typed literals in [transit](https://github.com/cognitect/transit-clj) format:
 
 ```
-> (write-rdf g "/tmp/testing.ttl" "turtle")
-> 
+(add! g :eg/Thing4 :eg/hasMap {:sub-map {:a "this is a string"}
+                               :vector [1 2 3]
+                               :set #{:a :b :c}
+                               :list '(1 2 3)
+                               })
 ```
+
+The resulting in-memory graph would look like this:
+
+```
+{
+ # ... yadda
+ :eg/Thing4
+ #:eg{:hasMap
+      #{{:sub-map {:a "this is a string"},
+         :vector [1 2 3],
+         :set #{:c :b :a},
+         :list (1 2 3)}}},
+ # yadda ...
+```
+
+After a call to `write-rdf`, the resulting turtle would look like this:
+
+```
+@prefix eg:   <http://rdf.example.com#> .
+
+# ... yadda
+eg:Thing4  eg:hasMap  "[\"^ \",\"~:sub-map\",[\"^ \",\"~:a\",\"this is a string\"],\"~:vector\",[1,2,3],\"~:set\",[\"~#set\",[\"~:c\",\"~:b\",\"~:a\"]],\"~:list\",[\"~#list\",[1,2,3]]]"^^<http://rdf.naturallexicon.org/ns/cognitect.transit#json> .
+# yadda ...
+```
+
+This is not the most human-readable stuff on earth, but transit has
+[several
+advantages](https://cognitect.com/blog/2014/7/22/transit). One
+disadvantage is that it's hard to formulate queries in SPARQL that
+match these values directly. Note also that none of the internals of
+the transit representation would be available under SPARQL
+either. You'd need to read the file back into an RDF-based IGraph, or
+use [transit's API](https://cognitect.github.io/transit-clj/) to
+import the contents into the platform of your choice.
+
+You shoud also be able to roll your own custom transit support for
+other data structures.
+
+See the [corresponding section in the igraph/rdf
+module](https://github.com/ont-app/rdf#h3-transit-encoded-values) for
+more details.
+
+### I/O
+
+The `ont-app/rdf` module has multimethods defined for I/O. The
+functions described here are wrappers around those methods.
+
+### Loading a file into a new graph
+
+```
+> (load-rdf to-load) -> <new graph>
+```
+
+The `to-load` argument can be either a string naming an existing file
+path, a java file, a jar resource or a URL registered in
+@`rdf/resource-catalog`.
+
+### Reading a file into an existing graph
+
+```
+> (read-rdf g to-read) -> <updated graph>
+```
+
+Again, he `to-read` argument can be either a string naming an existing
+file path, a java file, a jar resource or a URL registered in
+@`rdf/resource-catalog`.
+
+
+### Writing the contents of a graph to a file
+
+At present only writing to local files is supported.
+
+
+```
+> (write-with-jena-writer g "/tmp/testing.ttl" :formats/Turtle)
+
+```
+
+There is also:
+
+```
+(defmethod rdf/write-rdf [JenaGraph :rdf-app/LocalFile :dct/MediaTypeOrExtent]
+```
+
+The supported formats arguments are derived automatically from the
+`ontology` graph defined in `ont-app.igraph-jena.ont`.
+
+
+This expression will give you the list of available formats:
+
+```
+(descendents :dct/MediaTypeOrExtent)
+```
+
+See also the [ont-app/rdf](https://github.com/ont-app/rdf)
+documentation.
+
 
 ## See also
 
