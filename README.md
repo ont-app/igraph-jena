@@ -36,12 +36,12 @@ org.apache.jena.rdf.model.impl.ModelCom
 
 We can specify a file
 ```
-> (def g (jgraph/make-jena-graph (RDFDataMgr/loadModel "resources/test-data.ttl"))
+> (def g (jgraph/make-jena-graph (RDFDataMgr/loadModel "/path/to/test-data.ttl"))
 ```
-Or equivalently use the `read-rdf` function:
+Or equivalently use the `load-rdf` function:
 
 ```
-> (def g (jgraph/read-rdf "resources/test-data.ttl"))
+> (def g (jgraph/load-rdf "/path/to/test-data.ttl"))
 
 ```
 
