@@ -47,7 +47,7 @@ codox:
 uberjar:
 	clojure -T:build ci
 
-install:
+install: uberjar
 	clojure -T:build install
 
 deploy: uberjar
