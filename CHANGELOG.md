@@ -1,5 +1,6 @@
 # Change log
-
+## 0.2.1
+- Renaming ont.cljc to ont.clj
 ## 0.2.0
 - project.clj -> deps.edn
 - Fix for issue #4 - Thanks to Simon Grey

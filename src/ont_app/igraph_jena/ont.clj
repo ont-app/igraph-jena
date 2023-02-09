@@ -1,7 +1,5 @@
 (ns ont-app.igraph-jena.ont
   {
-   :clj-kondo/config {:linters {:unresolved-namespace {:level :off}}}
-   ;; ... RDFFormat works fine
    }
   (:require
    ;;
