@@ -2,11 +2,20 @@
  :paths ["src" "resources"]
   :deps {
          org.clojure/clojure {:mvn/version "1.11.1"}
-         org.apache.jena/jena-arq {:mvn/version "4.3.1" }
+         org.apache.jena/jena-arq {:mvn/version "4.7.0"} ;;"4.3.1" }
          org.slf4j/slf4j-simple {:mvn/version "2.0.6"}
-         ont-app/rdf {:mvn/version "0.2.7"}
-         ont-app/vocabulary {:mvn/version "0.2.1"}
-         ont-app/igraph {:mvn/version "0.2.1"}
+         ont-app/rdf {:mvn/version "0.2.7"
+                      :exclusions [org.clojure/clojurescript "1.11.60"
+                                   org.msgpack/msgpack "0.6.12"
+                                   ;; per nvd CVE-2022-41719
+                                   ]
+                      }
+         ont-app/vocabulary {:mvn/version "0.2.1"
+                             :exclusions [org.clojure/clojurescript "1.11.60"]
+                             }
+         ont-app/igraph {:mvn/version "0.2.1"
+                         :exclusions [org.clojure/clojurescript "1.11.60"]
+                         }
          
         }
  :aliases {
@@ -28,8 +37,8 @@
            ;; for help: clojure -A:deps -T:build help/doc
            :build {
                    :deps {
-                          io.github.seancorfield/build-clj {:git/tag "v0.9.0" 
-                                                            :git/sha "d758807"
+                          io.github.seancorfield/build-clj {:git/tag "v0.9.2" 
+                                                            :git/sha "9c9f078";;"d758807"
                                                             }
                           org.clojure/tools.deps {:mvn/version "0.16.1264"}
                           }
