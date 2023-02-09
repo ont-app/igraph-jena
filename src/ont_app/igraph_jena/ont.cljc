@@ -1,16 +1,19 @@
 (ns ont-app.igraph-jena.ont
+  {
+   :clj-kondo/config {:linters {:unresolved-namespace {:level :off}}}
+   ;; ... RDFFormat works fine
+   }
   (:require
    ;;
    [ont-app.igraph.core :as igraph :refer [add]]
-   [ont-app.igraph.graph :as g :refer [make-graph]]
    [ont-app.vocabulary.core :as voc]
-   [ont-app.rdf.core :as rdf-app]
    [ont-app.rdf.ont :as rdf-ont]
    [ont-app.igraph-vocabulary.core :as igv]
    )
   (:import
    [org.apache.jena.riot
-    RDFFormat]
+    RDFFormat
+    ]
   ))
 
 (voc/put-ns-meta!
@@ -67,49 +70,49 @@
   ])
 
 (comment ;; these are the RDF formats in jena. TODO integrate into ont.
-org.apache.jena.riot.RDFFormat/ABBREV <sf>
-org.apache.jena.riot.RDFFormat/ASCII <sf>
-org.apache.jena.riot.RDFFormat/BLOCKS <sf>
-org.apache.jena.riot.RDFFormat/FLAT <sf>
-org.apache.jena.riot.RDFFormat/JSONLD <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_COMPACT_FLAT <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_COMPACT_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_EXPAND_FLAT <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_EXPAND_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_FLAT <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_FLATTEN_FLAT <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_FLATTEN_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_FRAME_FLAT <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_FRAME_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/JSONLD_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/NQ <sf>
-org.apache.jena.riot.RDFFormat/NQUADS <sf>
-org.apache.jena.riot.RDFFormat/NQUADS_ASCII <sf>
-org.apache.jena.riot.RDFFormat/NQUADS_UTF8 <sf>
-org.apache.jena.riot.RDFFormat/NT <sf>
-org.apache.jena.riot.RDFFormat/NTRIPLES <sf>
-org.apache.jena.riot.RDFFormat/NTRIPLES_ASCII <sf>
-org.apache.jena.riot.RDFFormat/NTRIPLES_UTF8 <sf>
-org.apache.jena.riot.RDFFormat/PLAIN <sf>
-org.apache.jena.riot.RDFFormat/PRETTY <sf>
-org.apache.jena.riot.RDFFormat/RDFJSON <sf>
-org.apache.jena.riot.RDFFormat/RDFNULL <sf>
-org.apache.jena.riot.RDFFormat/RDFXML <sf>
-org.apache.jena.riot.RDFFormat/RDFXML_ABBREV <sf>
-org.apache.jena.riot.RDFFormat/RDFXML_PLAIN <sf>
-org.apache.jena.riot.RDFFormat/RDFXML_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/RDF_THRIFT <sf>
-org.apache.jena.riot.RDFFormat/RDF_THRIFT_VALUES <sf>
-org.apache.jena.riot.RDFFormat/TRIG <sf>
-org.apache.jena.riot.RDFFormat/TRIG_BLOCKS <sf>
-org.apache.jena.riot.RDFFormat/TRIG_FLAT <sf>
-org.apache.jena.riot.RDFFormat/TRIG_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/TRIX <sf>
-org.apache.jena.riot.RDFFormat/TTL <sf>
-org.apache.jena.riot.RDFFormat/TURTLE <sf>
-org.apache.jena.riot.RDFFormat/TURTLE_BLOCKS <sf>
-org.apache.jena.riot.RDFFormat/TURTLE_FLAT <sf>
-org.apache.jena.riot.RDFFormat/TURTLE_PRETTY <sf>
-org.apache.jena.riot.RDFFormat/UTF8 <sf>
-org.apache.jena.riot.RDFFormat/ValueEncoding <sf>
-)
+  org.apache.jena.riot.RDFFormat/ABBREV
+  org.apache.jena.riot.RDFFormat/ASCII
+  org.apache.jena.riot.RDFFormat/BLOCKS
+  org.apache.jena.riot.RDFFormat/FLAT
+  org.apache.jena.riot.RDFFormat/JSONLD
+  org.apache.jena.riot.RDFFormat/JSONLD_COMPACT_FLAT
+  org.apache.jena.riot.RDFFormat/JSONLD_COMPACT_PRETTY
+  org.apache.jena.riot.RDFFormat/JSONLD_EXPAND_FLAT
+  org.apache.jena.riot.RDFFormat/JSONLD_EXPAND_PRETTY
+  org.apache.jena.riot.RDFFormat/JSONLD_FLAT
+  org.apache.jena.riot.RDFFormat/JSONLD_FLATTEN_FLAT
+  org.apache.jena.riot.RDFFormat/JSONLD_FLATTEN_PRETTY
+  org.apache.jena.riot.RDFFormat/JSONLD_FRAME_FLAT
+  org.apache.jena.riot.RDFFormat/JSONLD_FRAME_PRETTY
+  org.apache.jena.riot.RDFFormat/JSONLD_PRETTY
+  org.apache.jena.riot.RDFFormat/NQ
+  org.apache.jena.riot.RDFFormat/NQUADS
+  org.apache.jena.riot.RDFFormat/NQUADS_ASCII
+  org.apache.jena.riot.RDFFormat/NQUADS_UTF8
+  org.apache.jena.riot.RDFFormat/NT
+  org.apache.jena.riot.RDFFormat/NTRIPLES
+  org.apache.jena.riot.RDFFormat/NTRIPLES_ASCII
+  org.apache.jena.riot.RDFFormat/NTRIPLES_UTF8
+  org.apache.jena.riot.RDFFormat/PLAIN
+  org.apache.jena.riot.RDFFormat/PRETTY
+  org.apache.jena.riot.RDFFormat/RDFJSON
+  org.apache.jena.riot.RDFFormat/RDFNULL
+  org.apache.jena.riot.RDFFormat/RDFXML
+  org.apache.jena.riot.RDFFormat/RDFXML_ABBREV
+  org.apache.jena.riot.RDFFormat/RDFXML_PLAIN
+  org.apache.jena.riot.RDFFormat/RDFXML_PRETTY
+  org.apache.jena.riot.RDFFormat/RDF_THRIFT
+  org.apache.jena.riot.RDFFormat/RDF_THRIFT_VALUES
+  org.apache.jena.riot.RDFFormat/TRIG
+  org.apache.jena.riot.RDFFormat/TRIG_BLOCKS
+  org.apache.jena.riot.RDFFormat/TRIG_FLAT
+  org.apache.jena.riot.RDFFormat/TRIG_PRETTY
+  org.apache.jena.riot.RDFFormat/TRIX
+  org.apache.jena.riot.RDFFormat/TTL
+  org.apache.jena.riot.RDFFormat/TURTLE
+  org.apache.jena.riot.RDFFormat/TURTLE_BLOCKS
+  org.apache.jena.riot.RDFFormat/TURTLE_FLAT
+  org.apache.jena.riot.RDFFormat/TURTLE_PRETTY
+  org.apache.jena.riot.RDFFormat/UTF8
+  org.apache.jena.riot.RDFFormat/ValueEncoding
+  )

@@ -4,7 +4,7 @@
          org.clojure/clojure {:mvn/version "1.11.1"}
          org.apache.jena/jena-arq {:mvn/version "4.3.1" }
          org.slf4j/slf4j-simple {:mvn/version "2.0.6"}
-         ont-app/rdf {:mvn/version "0.2.3-SNAPSHOT"}
+         ont-app/rdf {:mvn/version "0.2.7"}
          ont-app/vocabulary {:mvn/version "0.2.1"}
          ont-app/igraph {:mvn/version "0.2.1"}
          

@@ -10,10 +10,8 @@
                                            IGraphMutable
                                            add-to-graph
                                            get-p-o
-                                           get-o
                                            normal-form
                                            match-or-traverse
-                                           query
                                            reduce-spo
                                            remove-from-graph
                                            unique
@@ -21,7 +19,7 @@
    [ont-app.igraph.graph :as native-normal]
    [ont-app.vocabulary.core :as voc]
    [ont-app.rdf.core :as rdf]
-   [ont-app.graph-log.levels :refer [trace value-trace debug]]
+   [ont-app.graph-log.levels :refer [trace debug]]
    [ont-app.vocabulary.lstr]
    [ont-app.igraph-jena.ont :as ont]
    )
@@ -32,15 +30,16 @@
     LiteralImpl]
    [org.apache.jena.riot
     RDFDataMgr
-    RDFFormat
+    ;;RDFFormat
     ]
    [org.apache.jena.query
-    Dataset
-    QueryExecution
+    ;; Dataset
+    ;; QueryExecution
     QueryExecutionFactory
-    QueryFactory]
+    QueryFactory
+    ]
    [org.apache.jena.rdf.model
-    Model
+    ;; Model
     ModelFactory
     Resource
     ResourceFactory
@@ -54,6 +53,15 @@
   }
  )
 
+;; TODO remove this when ont-app/rdf issue 8 is fixed
+(voc/put-ns-meta!
+ 'cognitect.transit
+ {
+  :vann/preferredNamespacePrefix "transit"
+  :vann/preferredNamespaceUri "http://rdf.naturallexicon.org/ns/cognitect.transit#"
+  :dc/description "Functionality for the transit serialization format"
+  :foaf/homepage "https://github.com/cognitect/transit-format"
+  })
 
 (def ontology @ont/ontology-atom)
 
@@ -240,7 +248,7 @@
   (if (isa? (type o) :rdf-app/TransitData)
     (-> (do-get-o g s p)
         (clojure.set/intersection #{o})
-        (empty?)
+        (seq)
         (not))
     ;; else this is not transit data
     (rdf/ask-s-p-o ask-jena-model  g s p o)
@@ -286,7 +294,7 @@
    (new JenaGraph (.getNamedModel ds (voc/uri-for kwi)))))
 
 (defmethod create-object-resource [JenaGraph clojure.lang.Keyword]
-  [g kwi]
+  [_g kwi]
   (ResourceFactory/createResource
    (try (voc/uri-for kwi)
         (catch clojure.lang.ExceptionInfo e
@@ -305,7 +313,7 @@
 
 
 (defmethod create-object-resource [JenaGraph LangStr]
-  [g lstr]
+  [_g lstr]
   (ResourceFactory/createLangLiteral (str lstr) (.lang lstr)))
 
 
@@ -329,7 +337,7 @@
          (>= (count v) 3)
          ]
    }
-  (let [collect-triple (fn [s g [p o]]
+  (let [collect-triple (fn collect-triple [s g [p o]]
                          (.add (:model g) (make-statement g s p o))
                          g)
         ]
@@ -473,13 +481,12 @@
   [_context rdf-file]
   (try (make-jena-graph (RDFDataMgr/loadModel (str rdf-file)))
        (catch Error e
-         (let []
-           (throw (ex-info "Jena riot error"
-                           (merge
-                            (ex-data e)
-                            {:type ::RiotError
-                             ::file-name (str rdf-file)
-                             })))))
+         (throw (ex-info "Jena riot error"
+                         (merge
+                          (ex-data e)
+                          {:type ::RiotError
+                           ::file-name (str rdf-file)
+                           }))))
        ))
 
 (defn read-rdf
