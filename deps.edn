@@ -2,19 +2,19 @@
  :paths ["src" "resources"]
   :deps {
          org.clojure/clojure {:mvn/version "1.11.1"}
-         org.apache.jena/jena-arq {:mvn/version "4.7.0"} ;;"4.3.1" }
+         org.apache.jena/jena-arq {:mvn/version "4.7.0"}
          org.slf4j/slf4j-simple {:mvn/version "2.0.6"}
          ont-app/rdf {:mvn/version "0.2.7"
-                      :exclusions [org.clojure/clojurescript "1.11.60"
-                                   org.msgpack/msgpack "0.6.12"
+                      :exclusions [org.clojure/clojurescript
+                                   org.msgpack/msgpack
                                    ;; per nvd CVE-2022-41719
                                    ]
                       }
          ont-app/vocabulary {:mvn/version "0.2.1"
-                             :exclusions [org.clojure/clojurescript "1.11.60"]
+                             :exclusions [org.clojure/clojurescript]
                              }
          ont-app/igraph {:mvn/version "0.2.1"
-                         :exclusions [org.clojure/clojurescript "1.11.60"]
+                         :exclusions [org.clojure/clojurescript]
                          }
          
         }
