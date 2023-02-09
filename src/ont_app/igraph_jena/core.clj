@@ -63,7 +63,9 @@
   :foaf/homepage "https://github.com/cognitect/transit-format"
   })
 
-(def ontology @ont/ontology-atom)
+(def ontology
+  "A native-normal graph holding the supporting ontology for igraph-jena"
+  @ont/ontology-atom)
 
 (defonce query-template-defaults
   (merge @rdf/query-template-defaults
@@ -73,6 +75,7 @@
           }))
 
 (reset! rdf/query-template-defaults query-template-defaults)
+
 ;; TODO: Eplore the trade-offs this way vs. (binding [rdf/query-template-defaults query-template-defaults]
 
 (defmethod rdf/render-literal LiteralImpl
@@ -170,7 +173,6 @@
   "
   create-object-resource-dispatch)
 
-
 (defmethod create-object-resource :default
   [_g object]
   (ResourceFactory/createTypedLiteral object))
@@ -216,7 +218,7 @@
    ))
 
 (defn get-subjects
-  "Returns a sequence of KWIs corresponding ot subjects in `jena-model`"
+  "Returns a sequence of KWIs corresponding to subjects in `jena-model`"
   [jena-model]
   (->> (.listSubjects jena-model)
        (iterator-seq)
@@ -311,7 +313,6 @@
               ;; else it's some other error
               (throw e)))))))
 
-
 (defmethod create-object-resource [JenaGraph LangStr]
   [_g lstr]
   (ResourceFactory/createLangLiteral (str lstr) (.lang lstr)))
@@ -355,7 +356,6 @@
     2 (let [[s p] v]
         (doseq [o (g s p)]
           (add-to-graph ^:vector [s p o])))))
-
 
 (defmethod add-to-graph [JenaGraph :vector-of-vectors]
   [g vs]
@@ -425,7 +425,8 @@
 (defn derivable-media-types
   "Returns {child parent, ...} for media types
   - where
-    - `child` should be declared to derive from `parent`
+    - `child` should be declared to derive from `parent`, being subsumed by
+      `:dct/MediaTypeOrExtent`
   - note
     - these derivations would inform method dispatch for rdf/write-rdf methods.
   "
@@ -458,6 +459,7 @@
 
 
 (def standard-io-context
+  "The standard context argument to igraph/rdf i/o methods"
   (-> @rdf/default-context
       (igraph/add [[#'rdf/load-rdf
                     :rdf-app/hasGraphDispatch JenaGraph

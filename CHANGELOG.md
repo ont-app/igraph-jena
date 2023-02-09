@@ -1,7 +1,9 @@
 # Change log
+
 ## 0.2.0
 - project.clj -> deps.edn
 - Fix for issue #4 - Thanks to Simon Grey
+- Incorporating i/o and test-support from ont-app/rdf 0.2.7
 ## 0.1.3
 - Updated and simplified dependencies
 ## 0.1.2

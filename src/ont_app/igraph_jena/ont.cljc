@@ -23,13 +23,16 @@
   :vann/preferredNamespaceUri "http://rdf.naturallexicon.org/igraph-jena/ont#"
   })
 
-(def ontology-atom (atom @rdf-ont/ontology-atom))
+(def ontology-atom
+  "An atom containing ontology for igraph-jena"
+  (atom @rdf-ont/ontology-atom))
 
 (swap! ontology-atom igraph/union igv/ontology)
 
-(defn update-ontology! [to-add]
+(defn update-ontology!
+  "Adds content to `ontology-atom`"
+  [to-add]
   (swap! ontology-atom add to-add))
-
 
 ;;;;;;;;
 ;; RIOT
