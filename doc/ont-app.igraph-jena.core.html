@@ -32,7 +32,8 @@ Where
 - `var` is a keyword corresponding to a variable in `q`
 - `value` is an interpretation of the value bound to `var`
   this will be either a KWI or a literal, as appropriate.
-</pre></div></div><div class="public anchor" id="var-query-template-defaults"><h3>query-template-defaults</h3><div class="usage"></div><div class="doc"><pre class="plaintext"></pre></div></div><div class="public anchor" id="var-read-rdf"><h3>read-rdf</h3><div class="usage"><code>(read-rdf g to-read)</code></div><div class="doc"><pre class="plaintext">Side-effect: updates `g` to include contents of `to-read`
+</pre></div></div><div class="public anchor" id="var-query-template-defaults"><h3>query-template-defaults</h3><div class="usage"></div><div class="doc"><pre class="plaintext">Jena-specific values for rdf/query-template-defaults. Supports bnode-round-tripping.
+</pre></div></div><div class="public anchor" id="var-read-rdf"><h3>read-rdf</h3><div class="usage"><code>(read-rdf g to-read)</code></div><div class="doc"><pre class="plaintext">Side-effect: updates `g` to include contents of `to-read`
 This is a wrapper around rdf/read-rdf
 </pre></div></div><div class="public anchor" id="var-standard-io-context"><h3>standard-io-context</h3><div class="usage"></div><div class="doc"><pre class="plaintext">The standard context argument to igraph/rdf i/o methods
 </pre></div></div><div class="public anchor" id="var-write-with-jena-writer"><h3>write-with-jena-writer</h3><div class="usage"><code>(write-with-jena-writer g target fmt)</code><code>(write-with-jena-writer g target fmt base)</code></div><div class="doc"><pre class="plaintext">Side-effect: writes contents of `g` to `target` in `fmt`

@@ -67,7 +67,9 @@
   "A native-normal graph holding the supporting ontology for igraph-jena"
   @ont/ontology-atom)
 
-(defonce query-template-defaults
+(defonce
+  ^{:doc "Jena-specific values for rdf/query-template-defaults. Supports bnode-round-tripping."}
+  query-template-defaults
   (merge @rdf/query-template-defaults
          {:rebind-_s "IRI(?_s)"
           :rebind-_p "IRI(?_p)"
@@ -420,7 +422,10 @@
 ;; I/O
 ;;;;;;;;;
 
-(derive JenaGraph :rdf-app/IGraph)
+;; Jena will figure out how to load local files and web resources by name...
+(derive :rdf-app/FileResource :rdf-app/LocalFile)
+(derive :rdf-app/LocalFile ::LoadableByName)
+(derive :rdf-app/WebResource ::LoadableByName)
 
 (defn derivable-media-types
   "Returns {child parent, ...} for media types
@@ -479,15 +484,15 @@
   [to-load]
   (rdf/load-rdf standard-io-context to-load))
 
-(defmethod rdf/load-rdf [JenaGraph :rdf-app/LocalFile]
-  [_context rdf-file]
-  (try (make-jena-graph (RDFDataMgr/loadModel (str rdf-file)))
+(defmethod rdf/load-rdf [JenaGraph ::LoadableByName]
+  [_context rdf-resource]
+  (try (make-jena-graph (RDFDataMgr/loadModel (str rdf-resource)))
        (catch Error e
          (throw (ex-info "Jena riot error"
                          (merge
                           (ex-data e)
                           {:type ::RiotError
-                           ::file-name (str rdf-file)
+                           ::file-name (str rdf-resource)
                            }))))
        ))
 
@@ -498,7 +503,7 @@
   [g to-read]
   (rdf/read-rdf standard-io-context g to-read))
 
-(defmethod rdf/read-rdf [JenaGraph :rdf-app/LocalFile]
+(defmethod rdf/read-rdf [JenaGraph ::LoadableByName]
   [_context g rdf-file]
   (.read (:model g) (str rdf-file))
   g)

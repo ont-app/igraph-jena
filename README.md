@@ -131,7 +131,7 @@ either. You'd need to read the file back into an RDF-based IGraph, or
 use [transit's API](https://cognitect.github.io/transit-clj/) to
 import the contents into the platform of your choice.
 
-You shoud also be able to roll your own custom transit support for
+You should also be able to roll your own custom transit support for
 other data structures.
 
 See the [corresponding section in the igraph/rdf
@@ -202,7 +202,7 @@ documentation.
 
 ## License
 
-Copyright © 2020-21 Eric D. Scott
+Copyright © 2020-23 Eric D. Scott
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at

@@ -6,7 +6,7 @@
    [clojure.pprint :refer [pprint]]
    [clojure.reflect :refer [reflect]]
    [clojure.repl :refer [apropos]]
-   [ont-app.igraph-jena.core :as core :refer :all]
+   [ont-app.igraph-jena.core :as core]
    [ont-app.rdf.core :as rdf]
    [ont-app.rdf.test-support :as rdf-test]
    [ont-app.vocabulary.core :as voc]
@@ -153,6 +153,17 @@
             :rdf-app/writeFileFn call-write-method
             ]))))
 
+;; Resources kept in the jar are not accessible to jena
+;; so we declare File Resources to be Cached Resources
+;; and access the contents as a cached Local File
+(derive ont_app.igraph_jena.core.JenaGraph :rdf-app/IGraph)
+(derive :rdf-app/FileResource :rdf-app/CachedResource)
+(prefer-method rdf/load-rdf
+               [:rdf-app/IGraph
+                :rdf-app/CachedResource]
+               [ont_app.igraph_jena.core.JenaGraph
+                :ont-app.igraph-jena.core/LoadableByName])
+
 (defn do-rdf-implementation-tests
   []
   (reset! rdf-test-report (init-rdf-report))
@@ -178,7 +189,7 @@
 
 (deftest issue-5-support-subtraction-of-lstr
   "We should be able to subtract language strings, and assert unique should subtract whatever may have been there before."
-  (let [g (load-rdf data)
+  (let [g (core/load-rdf data)
         ]
     (igraph/subtract! g [:eg/Thing1 :rdfs/label #voc/lstr "Thing 1@en"])
     (is (false? (g :eg/Thing1 :rdfs/label #voc/lstr "Thing 1@en")))
@@ -191,7 +202,7 @@
 
 (deftest test-transit-support
   (testing "Create typed literal"
-    (let [g (load-rdf data)
+    (let [g (core/load-rdf data)
           v-literal (.createTypedLiteral (:model g)
                                          (rdf/render-transit-json [1 2 3])
                                          (voc/uri-for :transit/json))
@@ -239,7 +250,7 @@
 
   (def v-rdf (rdf/render-transit-json [1]))
 
-  (def g-with-vector (let [g (load-rdf data)
+  (def g-with-vector (let [g (core/load-rdf data)
                            ]
                        (igraph/add! g [:eg/Thing3 :eg/hasVector [1 2 3]])))
 

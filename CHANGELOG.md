@@ -1,4 +1,8 @@
 # Change log
+## 0.2.3
+- Reforms to caching
+## 0.2.2
+- Getting the version label right (jeesh)
 ## 0.2.1
 - Renaming ont.cljc to ont.clj
 ## 0.2.0
