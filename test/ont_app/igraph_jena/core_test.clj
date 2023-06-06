@@ -6,12 +6,13 @@
    [clojure.pprint :refer [pprint]]
    [clojure.reflect :refer [reflect]]
    [clojure.repl :refer [apropos]]
-   [ont-app.igraph-jena.core :as core]
+   [ont-app.igraph-jena.core :as jena]
    [ont-app.rdf.core :as rdf]
    [ont-app.rdf.test-support :as rdf-test]
    [ont-app.vocabulary.core :as voc]
    [ont-app.igraph.core :as igraph :refer [add
                                            normal-form
+                                           subjects
                                            unique
                                            ]]
    [ont-app.igraph.graph :as native-normal]
@@ -50,7 +51,7 @@
 (defn log-reset!
   "Side-effect: enables graph-log with `level` (default `:glog/DEBUG`)"
   ([]
-   (log-reset! :glog/DEBUG))
+   (log-reset! :glog/TRACE))
   ([level]
    (glog/log-reset!)
    (glog/set-level! level)))
@@ -65,25 +66,26 @@
 
 (def g
   "An jena graph whose contents are `core-test/data`"
-  (core/load-rdf data))
+  (jena/load-rdf data))
 
 
 (deftest test-normal-form
   "Confirms expectation of normal for for `test-data.ttl`"
-  (is (= {:http:%2F%2Frdf.example.com%2Ftest-file.ttl
-          #:rdf{:type #{:eg/TestFile}},
+  (let [g (jena/load-rdf data)]
+    (is (= {:http:%2F%2Frdf.example.com%2Ftest-file.ttl
+            #:rdf{:type #{:eg/TestFile}},
 
-          :eg/Thing1
-          {:eg/number #{1},
-           :rdfs/label #{#voc/lstr "Thing 1@en"},
-           :rdf/type #{:eg/Thing}},
-          
-          :eg/Thing2
-          {:eg/number #{2},
-           :rdfs/label #{#voc/lstr "Thing 2@en"},
-           :rdf/type #{:eg/Thing}}}
-         
-         (normal-form g))))
+            :eg/Thing1
+            {:eg/number #{1},
+             :rdfs/label #{#voc/lstr "Thing 1@en"},
+             :rdf/type #{:eg/Thing}},
+
+            :eg/Thing2
+            {:eg/number #{#voc/dstr "2^^eg:USDollars"},
+             :rdfs/label #{#voc/lstr "Thing 2@en"},
+             :rdf/type #{:eg/Thing}}}
+
+           (normal-form g)))))
 
 (def readme-test-report
   "Holds the contents of the readme-examples report to examine in case of failure"
@@ -92,7 +94,7 @@
 (defn make-test-graph
   "The value provided as the makeGraphFn for rdf test support"
   [data]
-  (-> (core/make-jena-graph)
+  (-> (jena/make-jena-graph)
       (igraph/add! data)))
 
 
@@ -140,16 +142,16 @@
   []
   (let [call-write-method (fn call-write-method [g ttl-file]
                             (rdf/write-rdf
-                             core/standard-io-context
+                             jena/standard-io-context
                              g
                              ttl-file
                              :formats/Turtle))
         ]
   (-> (native-normal/make-graph)
       (add [:rdf-app/RDFImplementationReport
-            :rdf-app/makeGraphFn core/make-jena-graph
-            :rdf-app/loadFileFn core/load-rdf
-            :rdf-app/readFileFn core/read-rdf
+            :rdf-app/makeGraphFn jena/make-jena-graph
+            :rdf-app/loadFileFn jena/load-rdf
+            :rdf-app/readFileFn jena/read-rdf
             :rdf-app/writeFileFn call-write-method
             ]))))
 
@@ -158,11 +160,6 @@
 ;; and access the contents as a cached Local File
 (derive ont_app.igraph_jena.core.JenaGraph :rdf-app/IGraph)
 (derive :rdf-app/FileResource :rdf-app/CachedResource)
-(prefer-method rdf/load-rdf
-               [:rdf-app/IGraph
-                :rdf-app/CachedResource]
-               [ont_app.igraph_jena.core.JenaGraph
-                :ont-app.igraph-jena.core/LoadableByName])
 
 (defn do-rdf-implementation-tests
   []
@@ -180,8 +177,8 @@
 
 
 (deftest test-write-method
-  (rdf/write-rdf core/standard-io-context
-                 (core/make-jena-graph)
+  (rdf/write-rdf jena/standard-io-context
+                 (jena/make-jena-graph)
                  (io/file "/tmp/test-write-method.ttl")
                  :formats/Turtle)
   (is (.exists   (io/file "/tmp/test-write-method.ttl"))))
@@ -189,7 +186,7 @@
 
 (deftest issue-5-support-subtraction-of-lstr
   "We should be able to subtract language strings, and assert unique should subtract whatever may have been there before."
-  (let [g (core/load-rdf data)
+  (let [g (jena/load-rdf data)
         ]
     (igraph/subtract! g [:eg/Thing1 :rdfs/label #voc/lstr "Thing 1@en"])
     (is (false? (g :eg/Thing1 :rdfs/label #voc/lstr "Thing 1@en")))
@@ -202,7 +199,7 @@
 
 (deftest test-transit-support
   (testing "Create typed literal"
-    (let [g (core/load-rdf data)
+    (let [g (jena/load-rdf data)
           v-literal (.createTypedLiteral (:model g)
                                          (rdf/render-transit-json [1 2 3])
                                          (voc/uri-for :transit/json))
@@ -213,12 +210,84 @@
              (.getDatatypeURI v-literal)))
       )))
 
+(defn do-import-raw-ttl-from-github
+  []
+  (let [g (jena/make-jena-graph)
+        rectangle-test (java.net.URL. "https://raw.githubusercontent.com/TopQuadrant/shacl/master/src/test/resources/sh/tests/rules/sparql/rectangle.test.ttl")
+        ]
+    (rdf/read-rdf-dispatch jena/standard-io-context g rectangle-test)
+    (jena/read-rdf g rectangle-test)))
 
 
+(deftest test-dstr-round-trip
+  "Writes and reads a #voc/dstr tag"
+  (let [test-file "/tmp/dstr-round-trip.ttl"
+        g (-> (jena/make-jena-graph)
+              (igraph/add! [:eg/Test :eg/amount #voc/dstr "2^^eg:USDollars"]))
+        ]
+    (jena/write-with-jena-writer g test-file "ttl")
+    (let [g' (jena/load-rdf test-file)
+          ]
+      (debug ::g-prime :g g')
+      (is (= (igraph/normal-form g)
+             (igraph/normal-form g')))
+      (io/delete-file test-file))))
 
 
+(defn do-bnode-round-trip
+  "Adds a bnode to a graph, writes the graph and reads it back in."
+  []
+  (let [test-file "/tmp/bnode-round-trip.ttl"
+        g (-> (jena/make-jena-graph)
+              (igraph/add! [[:rdf-app/_:i-am-blank :rdf/type :eg/Blank]
+                            [:rdf-app/_:i-am-also-blank :rdf/type :eg/Blank]
+                            [:eg/NonBlank :rdf/type :eg/NotBlank]]))
+        ]
+    (jena/write-with-jena-writer g test-file "ttl")
+    (let [g' (jena/load-rdf test-file)
+          ]
+      g')))
 
+(defn do-non-bnode
+  []
+  (let [test-file "/tmp/bnode-round-trip.ttl"
+        g (-> (jena/make-jena-graph)
+              (igraph/add! ^::rdf/no-bnodes
+                           [[:eg/i-am-not-blank :rdf/type :eg/NotBlank]
+                            [:eg/i-am-also-not-blank :rdf/type :eg/NotBlank]
+                            [:eg/NonBlank :rdf/type :eg/NotBlank]]))
+        ]
+    (jena/write-with-jena-writer g test-file "ttl")
+    (let [g' (jena/load-rdf test-file)
+          ]
+      g')))
+
+(deftest test-bnode-round-trip
+  (let [g (do-bnode-round-trip)
+        blank-and-not-blank (igraph/query g (rdf/prefixed  "Select * Where {?s a eg:Blank. ?s a eg:NonBlank}")) ;; should be empty
+        blanks (igraph/query g (rdf/prefixed  "Select * Where {?s a eg:Blank.}"))
+        not-blanks (igraph/query g (rdf/prefixed  "Select * Where {?s a eg:NotBlank.}"))
+        ]
+    (is (= (count (subjects g))
+           3))
+    (is (empty? blank-and-not-blank))
+    (is (= (count blanks) 2))
+    (is (= (count not-blanks) 1))
+    (is (igraph/ask g :eg/NonBlank :rdf/type :eg/NotBlank))
+  (doseq [s (subjects g)]
+    (is (= (count (igraph/get-o g s :rdf/type)) 1)))
+  ;; use the ^::rdf/no-bnodes meta data tag
+  (let [g (do-non-bnode)]
+    (is (= (igraph/normal-form g)
+           #:eg{:i-am-also-not-blank #:rdf{:type #{:eg/NotBlank}},
+                :NonBlank #:rdf{:type #{:eg/NotBlank}},
+                :i-am-not-blank #:rdf{:type #{:eg/NotBlank}}}))
+    (is (thrown?
+         clojure.lang.ExceptionInfo
+         (igraph/add! g ^::rdf/no-bnodes [[:rdf-app/_:i-am-blank :rdf/type :eg/Blank]]))))))
 (comment
+
+  (def rectangle-test "https://raw.githubusercontent.com/TopQuadrant/shacl/master/src/test/resources/sh/tests/rules/sparql/rectangle.test.ttl")
 
   (def g (RDFDataMgr/loadModel (str data)))
 
@@ -250,11 +319,11 @@
 
   (def v-rdf (rdf/render-transit-json [1]))
 
-  (def g-with-vector (let [g (core/load-rdf data)
+  (def g-with-vector (let [g (jena/load-rdf data)
                            ]
                        (igraph/add! g [:eg/Thing3 :eg/hasVector [1 2 3]])))
 
-  (core/write-rdf g-with-vector "/tmp/g-with-vector.ttl" "turtle")
+  (jena/write-rdf g-with-vector "/tmp/g-with-vector.ttl" "turtle")
   
   (def test-map {:b {:a 1} :v [1 2 3] :string "this is only a test" :set #{1 2 3}})
   (def test-map {:string "this is only a test"})
@@ -268,12 +337,12 @@
   (def g-with-map (let [g (read-rdf data)
                            ]
                     (add! g [:eg/Thing4 :eg/hasMap test-map])))
-  (core/write-rdf g-with-map "/tmp/g-with-map.ttl" org.apache.jena.riot.RDFFormat/TURTLE )
-  (def g-as-read (core/read-rdf "/tmp/g-with-map.ttl"))
+  (jena/write-rdf g-with-map "/tmp/g-with-map.ttl" org.apache.jena.riot.RDFFormat/TURTLE )
+  (def g-as-read (jena/read-rdf "/tmp/g-with-map.ttl"))
   (defn ask-result [] (g-as-read :eg/Thing3 :eg/hasMap test-map))
   (rdf/bnode-kwi? :http:%2F%2Frdf.naturallexicon.org%2FMagnitude)
   
-  (def g (rdf/load-rdf core/standard-io-context rdf-test/bnode-test-data))
+  (def g (rdf/load-rdf jena/standard-io-context rdf-test/bnode-test-data))
 
   (def rr (init-rdf-report))
   (def m (-> (glog/ith-entry 55) second ::rdf/g unique :model))
@@ -282,9 +351,9 @@
   
   (pprint (test-support/query-for-failures (deref (do-rdf-implementation-tests))))
 
-  (def g (rdf/load-rdf core/standard-io-context "/home/eric/Data/RDF/natural-lexicon.ttl"))
-  (core/read-rdf g "/home/eric/Data/RDF/devops.ttl")
-  (def g (rdf/load-rdf core/standard-io-context "/home/eric/Data/RDF/devops.ttl"))
+  (def g (rdf/load-rdf jena/standard-io-context "/home/eric/Data/RDF/natural-lexicon.ttl"))
+  (jena/read-rdf g "/home/eric/Data/RDF/devops.ttl")
+  (def g (rdf/load-rdf jena/standard-io-context "/home/eric/Data/RDF/devops.ttl"))
 
   (def ont-g (igraph/union @rdf/resource-catalog
                            @ont-app.igraph-jena.ont/ontology-atom))
@@ -295,26 +364,52 @@
                                  [[:?x :formats/preferred_suffix :?suffix]]))
 
 
-  (core/write-with-jena-writer g  "/tmp/test.nt"
+  (jena/write-with-jena-writer g  "/tmp/test.nt"
                                  (unique (ont-g :formats/N-triples :formats/media_type)))
 
 
-  (core/write-with-jena-writer g  "/tmp/test.json-ld" "JSON-LD")
-  (core/write-with-jena-writer g 
+  (jena/write-with-jena-writer g  "/tmp/test.json-ld" "JSON-LD")
+  (jena/write-with-jena-writer g 
                                "/tmp/test.ttl"
                                (unique (ont-g :formats/Turtle :formats/media_type)))
 
-  (core/write-with-jena-writer g 
+  (jena/write-with-jena-writer g 
                                "/tmp/test.json-ld"
                                "application/ld+json" ;;"JSON-LD"
                                #_(unique (ont-g :formats/JSON-LD :formats/media_type)))
-  (rdf/write-rdf core/standard-io-context g (io/file "/tmp/test.json") :formats/JSON-LD)
+  (rdf/write-rdf jena/standard-io-context g (io/file "/tmp/test.json") :formats/JSON-LD)
   (log-reset! :glog/TRACE)
   
-  (def g (core/make-jena-graph))
+  (def g (jena/make-jena-graph))
   (igraph/add! g (@rdf/resource-catalog))
 
-  (rdf/write-rdf core/standard-io-context g (io/file "/tmp/test.ttl") :formats/Turtle)
-  (rdf/write-rdf core/standard-io-context g (io/file "/tmp/test.json-ld") :formats/JSON-LD)
+  (rdf/write-rdf jena/standard-io-context g (io/file "/tmp/test.ttl") :formats/Turtle)
+  (rdf/write-rdf jena/standard-io-context g (io/file "/tmp/test.json-ld") :formats/JSON-LD)
   
   )
+
+(defn describe-api
+  "Returns [`member`, ...] for `obj`, for public members of `obj`, sorted by :name,  possibly filtering on `name-re`
+  - Where
+    - `obj` is an object subject to reflection
+    - `name-re` is a regular expression to match against (:name `member`)
+    - `member` := m, s.t. (keys m) = #{:name, :parameter-types, :return-type}
+  "
+  ([obj]
+   (let [collect-public-member (fn [acc member]
+                                (if (not
+                                     (empty?
+                                      (clojure.set/intersection #{:public}
+                                                                (:flags member))))
+                                  (conj acc (select-keys member
+                                                         [:name
+                                                          :parameter-types
+                                                          :return-type]))
+                                  ;;else member is not public
+                                  acc))]
+     (sort (fn compare-names [this that] (compare (:name this) (:name that)))
+           (reduce collect-public-member [] (:members (reflect obj))))))
+  ([obj name-re]
+   (filter (fn [member]
+             (re-matches name-re (str (:name member))))
+           (describe-api obj))))

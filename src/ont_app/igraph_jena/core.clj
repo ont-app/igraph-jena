@@ -6,6 +6,8 @@
    }
   (:require
    [clojure.java.io :as io]
+   [clojure.spec.alpha :as spec]
+   [cljstache.core :as stache]
    [ont-app.igraph.core :as igraph :refer [IGraph
                                            IGraphMutable
                                            add-to-graph
@@ -19,22 +21,23 @@
    [ont-app.igraph.graph :as native-normal]
    [ont-app.vocabulary.core :as voc]
    [ont-app.rdf.core :as rdf]
-   [ont-app.graph-log.levels :refer [trace debug]]
+   [ont-app.graph-log.levels :refer [trace value-trace debug]]
    [ont-app.vocabulary.lstr]
+   [ont-app.vocabulary.dstr :as dstr]
    [ont-app.igraph-jena.ont :as ont]
    )
   (:import
    [ont_app.vocabulary.lstr
     LangStr]
+   [ont_app.vocabulary.dstr
+    DatatypeStr]
    [org.apache.jena.rdf.model.impl
-    LiteralImpl]
+    LiteralImpl
+    ]
    [org.apache.jena.riot
     RDFDataMgr
-    ;;RDFFormat
     ]
    [org.apache.jena.query
-    ;; Dataset
-    ;; QueryExecution
     QueryExecutionFactory
     QueryFactory
     ]
@@ -45,6 +48,7 @@
     ResourceFactory
     ]
    ))
+
 
 (voc/put-ns-meta!
  'ont-app.igraph-jena.core
@@ -78,39 +82,197 @@
 
 (reset! rdf/query-template-defaults query-template-defaults)
 
-;; TODO: Eplore the trade-offs this way vs. (binding [rdf/query-template-defaults query-template-defaults]
+;; TODO: Explore the trade-offs this way vs. (binding [rdf/query-template-defaults query-template-defaults]
 
-(defmethod rdf/render-literal LiteralImpl
+
+(defmethod voc/untag :xsd/duration
+  [obj]
+  ;; Returns instance of org.apache.jena.datatypes.xsd.XSDDuration
+  (-> (org.apache.jena.datatypes.xsd.impl.XSDDurationType.)
+      (.parseValidated (str obj))))
+
+
+;; Specify which dstr tags should be rendered untagged in the graph...
+(doseq [to-untag [:transit/json
+                  :xsd/dateTime
+                  :xsd/double
+                  :xsd/int
+                  :xsd/integer
+                  :xsd/long
+                  :xsd/Boolean
+                  ]]
+  (derive to-untag :jena/UntaggedInGraph))
+
+(defmethod rdf/read-literal LiteralImpl
   [elt]
+  (trace ::starting-read-literal
+         ::elt elt)
+  (value-trace
+   ::read-literal-result
+   [::elt elt]
+   (cond
+     (re-find #"langString$" (.getDatatypeURI elt))
+     (ont-app.vocabulary.lstr/->LangStr (.getLexicalForm elt)
+                                        (.getLanguage elt))
+
+     :else ;; else it's some other kinda literal
+     (if-let [[_datum datatype] (dstr/parse (str elt))]
+       (let [tag (voc/tag (if (voc/resource= datatype :transit/json)
+                            (rdf/read-transit-json (.getLexicalForm elt))
+                            ;; else no special encoding of the datum
+                            (.getLexicalForm elt))
+                          (voc/as-kwi datatype))]
+         (if (isa? (voc/as-kwi datatype) :jena/UntaggedInGraph)
+           (voc/untag tag identity)
+           ;; else don't untag
+           tag))
+        ;; else can't parse out "..."^^"..."
+       (.getValue elt)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; RESOURCE TYPE: jena/Resource
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(voc/register-resource-type-context! ::resource-type-context ::rdf/resource-type-context)
+(derive :jena/URI :jena/Resource)
+(derive :jena/Bnode :jena/Resource)
+(derive :jena/BnodeKwi :rdf-app/BnodeKwi)
+
+(def bnode-tag-re "round-trippable bnode string"
+  (re-pattern (str "^"
+                   "<"
+                   (subs (str rdf/bnode-name-re) 1) ;; drop the ^ starts-with marker
+                   ">")))
+
+(defmethod voc/resource-type [::resource-type-context (type "")]
+  [this]
+  ;; check for a string formatted like a bnode...
+  (if (re-matches bnode-tag-re this)
+    :jena/BnodeString
+    ;; else handle it like any other string....
+    (let [m (methods voc/resource-type)
+          parent-context (unique (parents (::voc/hierarchy @voc/resource-types)
+                                          ::resource-type-context))
+          redispatch (m [parent-context (type this)])]
+      (redispatch this))))
+
+(defmethod voc/resource-type [::resource-type-context (type :x)] ;; keyword
+  [this]
   (cond
-    (re-find #"langString$" (.getDatatypeURI elt))
-    (ont-app.vocabulary.lstr/->LangStr (.getLexicalForm elt)
-                                       (.getLanguage elt))
-    (= (voc/uri-for :transit/json)
-       (.getDatatypeURI elt))
-    (rdf/read-transit-json (.lexicalValue (.getValue elt)))
-    
-    :else ;; else it's some other kinda literal
-    (.getValue elt)))
+    ;; Check for a bnode kwi...
+    (and (= (namespace this) "jena")
+         (re-matches rdf/bnode-name-re (name this)))
+    :jena/BnodeKwi
+
+    (and (= (namespace this) "rdf")
+         (re-matches rdf/bnode-name-re (name this)))
+    :rdf-app/BnodeKwi
+
+    :else ;; else handle like any other keyword...
+    (let [m (methods voc/resource-type)
+          parent-context (unique (parents (::voc/hierarchy @voc/resource-types)
+                                          ::resource-type-context))
+          redispatch (m [parent-context (type this)])
+          ]
+      (redispatch this))))
+
+(defmethod voc/resource-type [::resource-type-context
+                              org.apache.jena.rdf.model.impl.ResourceImpl]
+  [this]
+  (value-trace
+   ::resource-type-for-ResourceImpl
+   [::this this]
+   (if-let [u (.getURI this)]
+     (if (spec/valid? :voc/uri-str-spec u)
+       :jena/URI
+       ;; else
+       :jena/Bnode)
+     ;; else no URI field
+     (if-let [_id (.getId this)]
+       :jena/Bnode
+       ;;else
+       (throw (ex-info "Could not infer resource-type for " this
+                       {:type ::could-not-find-resource-type
+                        ::this this}))))))
 
 
-(defn interpret-binding-element
+;; bnode strings
+(defmethod voc/as-uri-string :jena/BnodeString
+  [this]
+  (str "_:" (rdf/normalize-bnode-string this)))
+
+#_(defmethod voc/as-kwi :jena/BnodeString
+  [this]
+  (let [rdf-kwi (-> (methods voc/as-kwi) :rdf-app/BnodeString)
+        ]
+    (rdf-kwi (rdf/normalize-bnode-string this))))
+
+(defmethod voc/as-kwi :jena/BnodeString
+  [this]
+  (keyword "jena" (rdf/normalize-bnode-string this)))
+
+
+;; bnode kwis
+(defmethod voc/as-uri-string :jena/BnodeKwi
+  [this]
+  {:post [(= (voc/resource-type %) :jena/BnodeString)]}
+  (let [[_ parsed-name] (re-matches rdf/bnode-name-re (name this))]
+    (when (not parsed-name)
+      (throw (ex-info (str "Cound not parse bnode kwi " this)
+                      {:type ::CoundNotParseBnodeKwi
+                       ::this this})))
+    (str "<_:" parsed-name ">")))
+
+(defmethod voc/as-qname :rdf-app/BnodeKwi
+  [this]
+  (voc/as-uri-string this))
+
+;; uri objects
+(defmethod voc/as-uri-string :jena/URI
+  [this]
+  (voc/as-uri-string (.getURI this)))
+
+(defmethod voc/as-kwi :jena/URI
+  [this]
+  (voc/as-kwi (voc/as-uri-string this)))
+
+(defmethod voc/as-qname :jena/URI
+  [this]
+  (voc/as-qname (voc/as-kwi this)))
+
+;; bnode objects
+(defmethod voc/as-uri-string :jena/Bnode
+  [this]
+  (voc/as-uri-string (or (.getURI this)
+                         (-> (.getId this) str))))
+
+(defmethod voc/as-kwi :jena/Bnode
+  [this]
+  (let [bnode-string-kwi (-> (methods voc/as-kwi) :jena/BnodeString)
+        ]
+    (bnode-string-kwi (or (.getURI this) (-> (.getId this) str)))))
+
+(defmethod voc/as-qname :jena/Bnode
+  [this]
+  (voc/as-uri-string this))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; DEALING WITH QUERIES
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- interpret-binding-element
   "Returns a KWI or literal value as appropriate to `elt`
   Where
   - `elt` is bound to some variable in a query posed to a jena model."
   [elt]
-  (trace ::StartingInterpretBindingElement
-         :elt elt)
-  (if (instance? Resource elt)
-    (if-let [uri (.getURI elt)]
-      (if (re-matches #"^_:.*" uri) ;; it's a URI-ified bnode
-        (keyword "_" (str "<" uri ">"))
-        ;; else it's a regular uri...
-        (voc/keyword-for (str uri)))
-      ;; else it's a bnode ResourceImpl
-      (keyword "_" (str "<_:" (.getId elt) ">")))
-    ;; else it's a literal
-    (rdf/render-literal elt)))
+  (value-trace
+   ::InterpretBindingElementResult
+   [:elt elt]
+   ;; Sadly, even though elt satifies voc/Resource
+   (cond (instance? Resource elt)
+         (voc/as-kwi elt)
+         ;; else it's not a resource, it's a literal
+         :else
+         (rdf/read-literal elt))))
 
 (defn ask-jena-model
   "Returns true/false for ASK query `q` posed to Jena model `g`"
@@ -177,7 +339,10 @@
 
 (defmethod create-object-resource :default
   [_g object]
-  (ResourceFactory/createTypedLiteral object))
+  (value-trace
+   ::returning-default-object-resource
+   [::object object]
+   (ResourceFactory/createTypedLiteral object)))
 
 (defn make-statement
   "Returns a Jena Statment for `s` `p` and `o`"
@@ -191,7 +356,7 @@
    (ResourceFactory/createResource
     (cond
       (keyword? s)
-      (voc/uri-for s)
+      (voc/as-uri-string s)
 
       (instance? java.net.URI s)
       (str s)
@@ -199,13 +364,12 @@
       :else
       (throw (ex-info "Unexpected subject"
                       {:type ::UnexpectedSubject
-                       ::s s
-                       }))))
+                       ::s s}))))
    ,
    (ResourceFactory/createProperty
     (cond
       (keyword? p)
-      (voc/uri-for p)
+      (voc/as-uri-string p)
 
       (instance? java.net.URI p)
       (str p)
@@ -216,8 +380,8 @@
                        ::p p
                        }))))
    ,
-   (create-object-resource g o)
-   ))
+   (create-object-resource g o)))
+
 
 (defn get-subjects
   "Returns a sequence of KWIs corresponding to subjects in `jena-model`"
@@ -283,6 +447,10 @@
 (defmethod print-method JenaGraph [g ^java.io.Writer w]
   (.write w (format "<JenaGraph hash=%s size=%s>" (hash g) (.size (:model g)))))
 
+(defmethod print-method org.apache.jena.rdf.model.impl.InfModelImpl
+  [model ^java.io.Writer w]
+  (.write w (format "<InfModelImpl hash=%s size=%s>" (hash model) (.size model))))
+
 (defn make-jena-graph
   "Returns an implementation of igraph using a `model` or a named model in `ds` named `kwi`
   Where
@@ -295,15 +463,14 @@
   ([model]
    (new JenaGraph model))
   ([ds kwi]
-   (new JenaGraph (.getNamedModel ds (voc/uri-for kwi)))))
+   (new JenaGraph (.getNamedModel ds (voc/as-uri-string kwi)))))
 
 (defmethod create-object-resource [JenaGraph clojure.lang.Keyword]
   [_g kwi]
   (ResourceFactory/createResource
-   (try (voc/uri-for kwi)
+   (try (voc/as-uri-string kwi)
         (catch clojure.lang.ExceptionInfo e
-          (let [d (ex-data e)
-                ]
+          (let [d (ex-data e)]
             (case (:type d)
 
               ::voc/NoUriDeclaredForPrefix
@@ -315,64 +482,102 @@
               ;; else it's some other error
               (throw e)))))))
 
+(defmethod create-object-resource [JenaGraph java.net.URL]
+  [_g url]
+  (ResourceFactory/createResource (str url)))
+
 (defmethod create-object-resource [JenaGraph LangStr]
   [_g lstr]
   (ResourceFactory/createLangLiteral (str lstr) (.lang lstr)))
+
+(defmethod create-object-resource [JenaGraph DatatypeStr]
+  [g dstr]
+  (.createTypedLiteral (:model g)
+                       (str dstr)
+                       (voc/as-uri-string (.datatype dstr))))
 
 
 (defmethod create-object-resource [JenaGraph :rdf-app/TransitData]
   [g transit-data]
   (.createTypedLiteral (:model g)
                        (rdf/render-transit-json transit-data)
-                       (voc/uri-for :transit/json)))
+                       (voc/as-uri-string :transit/json)))
 
 (defmethod add-to-graph [JenaGraph :normal-form]
   [g to-add]
   (let [g' (native-normal/make-graph :contents to-add)
         ]
     (add-to-graph g
-                  ^:vector-of-vectors
+                  ^{::igraph/triples-format :vector-of-vectors}
                   (reduce-spo (fn [v s p o] (conj v [s p o])) [] g'))))
 
 (defmethod add-to-graph [JenaGraph :vector]
   [g v]
   {:pre [(odd? (count v))
-         (>= (count v) 3)
-         ]
-   }
-  (let [collect-triple (fn collect-triple [s g [p o]]
+         (>= (count v) 3)]}
+  (let [bnode-error (fn [bnode] (ex-info
+                                 (str "Adding a direct statement with bnode when metadata"
+                                      " ::no-bnodes was specified.")
+                                 {:type ::unexpected-bnode-in-add-to-graph
+                                  ::g g
+                                  ::v v
+                                  ::bode bnode}))
+        collect-triple (fn collect-triple [s g [p o]]
+                         ;; Need to load from ttl to round-trip bnodes properly
+                         (when (rdf/bnode-kwi? s)
+                           (throw (bnode-error s)))
+                         (when (and (keyword? o) (rdf/bnode-kwi? o))
+                           (throw (bnode-error o)))
                          (.add (:model g) (make-statement g s p o))
-                         g)
-        ]
+                         g)]
     (reduce (partial collect-triple (first v)) g (partition 2 (rest v)))
     g))
 
-(defmethod add-to-graph [JenaGraph :underspecified-triple]
-  [g v]
-  (case (count v)
-    1 (let [[s] v
-            po (g s)]
-        (doseq [p (keys po)]
-          (doseq [o (po p)]
-            (add-to-graph g ^:vector [s p o]))))
-    2 (let [[s p] v]
-        (doseq [o (g s p)]
-          (add-to-graph ^:vector [s p o])))))
+(defn vectors-to-ttl
+  "Returns a string of turtle for `vectors`
+  - Where
+    - `vectors` := [[s [p o], ...]]
+  "
+  [g vectors]
+  {:pre [(spec/assert ::igraph/vector-of-vectors vectors)]}
+  (let [collect-triple (fn collect-triple [s sacc [p o]]
+                         (str sacc
+                              (stache/render "{{{s}}} {{{p}}} {{{o}}} ."
+                                             {:s (voc/as-qname s)
+                                              :p (voc/as-qname p)
+                                              :o (if (spec/valid? :voc/kwi-spec o)
+                                                   (voc/as-qname o)
+                                                   (rdf/render-literal o))
+                                              })))
+        collect-ttl (fn [sacc v]
+                      (reduce (partial collect-triple (first v)) sacc
+                              (partition 2 (rest v))))]
+    (value-trace
+     ::vectors-to-ttl-result
+     [::g g ::vectors vectors]
+     (voc/prepend-prefix-declarations
+      voc/turtle-prefixes-for
+      (reduce collect-ttl "" vectors)))))
 
+(declare standard-io-context)
 (defmethod add-to-graph [JenaGraph :vector-of-vectors]
   [g vs]
-  ;; todo: is there a more efficient way to do this?
-  (doseq [v vs]
-    (add-to-graph g ^:vector v))
+  ;; In order to handle bnodes properly, we need to write to ttl and load from that
+  ;; It's a bit faster to just write statements to the model directly
+  ;; We'll do that if we declare ::rdf/no-bnodes in the metadata
+  (if (-> (meta vs) ::rdf/no-bnodes)
+    (doseq [v vs]
+      (add-to-graph g ^{::igraph/triples-format :vector} v))
+    ;; else there may be blank nodes. Read turtle ensure proper-round-tripping.
+    (rdf/read-rdf standard-io-context g (vectors-to-ttl g vs)))
   g)
 
 (defmethod remove-from-graph [JenaGraph :normal-form]
   [g v]
-  (let [g' (native-normal/make-graph :contents v)
-        ]
+  (let [g' (native-normal/make-graph :contents v)]
     (remove-from-graph
      g
-     ^:vector-of-vectors
+     ^{::igraph/triples-format :vector-of-vectors}
      (reduce-spo (fn [v s p o] (conj v [s p o])) [] g'))))
 
 (defmethod remove-from-graph [JenaGraph :vector]
@@ -381,13 +586,12 @@
                         (.removeAll
                          (:model g)
                          (ResourceFactory/createResource
-                          (voc/uri-for s))
+                          (voc/as-uri-string s))
                          (ResourceFactory/createProperty
-                          (voc/uri-for p))
+                          (voc/as-uri-string p))
                          (create-object-resource g o)
                          )
-                        g)
-        ]
+                        g)]
     (if (empty? to-remove)
       g
       ;; else there are arguments
@@ -404,18 +608,17 @@
             po (g s)]
         (doseq [p (keys po)]
           (doseq [o (po p)]
-            (remove-from-graph g ^:vector [s p o]))))
+            (remove-from-graph g ^{::igraph/triples-format :vector} [s p o]))))
     2 (let [[s p] v]
         (doseq [o (g s p)]
-          (remove-from-graph g ^:vector [s p o]))))
+          (remove-from-graph g ^{::igraph/triples-format :vector} [s p o]))))
   g)
 
 
 (defmethod remove-from-graph [JenaGraph :vector-of-vectors]
   [g vs]
-  ;; todo: is there a more efficient way to do this?
   (doseq [v vs]
-    (remove-from-graph g ^:vector v))
+    (remove-from-graph g ^{::igraph/triples-format :vector} v))
   g)
 
 ;;;;;;;;
@@ -423,9 +626,15 @@
 ;;;;;;;;;
 
 ;; Jena will figure out how to load local files and web resources by name...
-(derive :rdf-app/FileResource :rdf-app/LocalFile)
+;; (derive :rdf-app/FileResource :rdf-app/LocalFile)
+(derive ont_app.igraph_jena.core.JenaGraph :rdf-app/IGraph)
 (derive :rdf-app/LocalFile ::LoadableByName)
-(derive :rdf-app/WebResource ::LoadableByName)
+(derive :rdf-app/WebResource :rdf-app/CachedResource)
+
+(prefer-method rdf/load-rdf
+               [ont_app.igraph_jena.core.JenaGraph :ont-app.igraph-jena.core/LoadableByName]
+               [:rdf-app/IGraph :rdf-app/CachedResource])
+
 
 (defn derivable-media-types
   "Returns {child parent, ...} for media types
@@ -443,25 +652,20 @@
         media-types (->> (igraph/query ont
                                        [[:?media-type subsumedBy* :dct/MediaTypeOrExtent]])
                          (map :?media-type)
-                         (set)
-                         )
+                         (set))
         get-derivable (fn [macc media-type]
                         ;; macc := {child parent, ...}
                         (let [parent (unique
                                       (filter media-types (ont media-type subsumedBy)))
 
                               ]
-                          (assoc macc media-type parent)))
-
-        ]
-    (reduce get-derivable {} media-types
-            )))
+                          (assoc macc media-type parent)))]
+    (reduce get-derivable {} media-types)))
 
 ;; Declare derivations for media types for write method dispatch...
 (doseq [[child parent] (derivable-media-types ontology)]
   (when parent
     (derive child parent)))
-
 
 (def standard-io-context
   "The standard context argument to igraph/rdf i/o methods"
@@ -474,8 +678,7 @@
                     ]
                    [#'rdf/write-rdf
                     :rdf-app/hasGraphDispatch JenaGraph
-                    ]
-                   ])))
+                    ]])))
 
 (defn load-rdf
   "Returns a new graph initialized with `to-load`
@@ -486,6 +689,8 @@
 
 (defmethod rdf/load-rdf [JenaGraph ::LoadableByName]
   [_context rdf-resource]
+  (trace ::starting-load-rdf-loadable-by-name
+         ::rdf-resource  rdf-resource)
   (try (make-jena-graph (RDFDataMgr/loadModel (str rdf-resource)))
        (catch Error e
          (throw (ex-info "Jena riot error"
@@ -493,8 +698,7 @@
                           (ex-data e)
                           {:type ::RiotError
                            ::file-name (str rdf-resource)
-                           }))))
-       ))
+                           }))))))
 
 (defn read-rdf
   "Side-effect: updates `g` to include contents of `to-read`
@@ -505,8 +709,27 @@
 
 (defmethod rdf/read-rdf [JenaGraph ::LoadableByName]
   [_context g rdf-file]
-  (.read (:model g) (str rdf-file))
+  (try (RDFDataMgr/read (:model g) (str rdf-file))
+       (catch Error e
+         (throw (ex-info "Jena riot error"
+                         (merge
+                          (ex-data e)
+                          {:type ::RiotError
+                           ::file-name (str rdf-file)
+                           })))))
   g)
+
+(defmethod rdf/read-rdf [JenaGraph java.lang.String]
+  ;; rdf-string is a string of typically turtle
+  ;; assumes media type is :formats/Turtle, unless otherwise specified in `context`
+  [context g rdf-string]
+  (let [base (unique (context  #'ont-app.rdf.core/read-rdf :rdf-app/baseUri))
+        format (or (context  #'ont-app.rdf.core/read-rdf :dcat/mediaType)
+                   :formats/Turtle)]
+    (.read (:model g)
+             (-> rdf-string (.getBytes) (java.io.ByteArrayInputStream.))
+             (when base (java.net.URI. (voc/as-uri-string base)))
+             (unique (ontology format :formats/media_type)))))
 
 ;; output ...
 
@@ -526,29 +749,22 @@
             (:model g)
             out
             (if (keyword? base)
-              (voc/uri-for base)
+              (voc/as-uri-string base)
               base)))))
 
 (defmethod rdf/write-rdf [JenaGraph :rdf-app/LocalFile :dct/MediaTypeOrExtent]
   [_context g rdf-file fmt]
-  (let [ont-and-catalog (igraph/union @rdf/resource-catalog
-                                      ontology
-                                      )
+  (let [ont-and-catalog (igraph/union @rdf/resource-catalog ontology)
         mime-type (unique (ont-and-catalog fmt :formats/media_type))
-        base (unique (ont-and-catalog rdf-file :rdf-app/baseUri))
-        ;; ...optional
-        ]
+        base (unique (ont-and-catalog rdf-file :rdf-app/baseUri))]
     (assert mime-type)
-    (write-with-jena-writer g rdf-file mime-type base)
-    ))
+    (write-with-jena-writer g rdf-file mime-type base)))
 
 (defmethod rdf/write-rdf [JenaGraph :rdf-app/LocalFile :riot-format/RiotFormat]
   [context g rdf-file fmt]
   ;; pending further research, we'll just use the standard format.
-  (let [media-type (unique (ontology fmt :dcat/mediaType))
-        ]
+  (let [media-type (unique (ontology fmt :dcat/mediaType))]
     (assert media-type)
     ;; ... a URI associated with a mime type string ....
     (assert (ontology media-type :formats/media_type))
-
     (rdf/write-rdf context g rdf-file media-type)))

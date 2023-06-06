@@ -15,4 +15,4 @@
     
     eg:Thing2 a eg:Thing;
     rdfs:label "Thing 2"@en;
-    eg:number 2.
+    eg:number "2"^^eg:USDollars.

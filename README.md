@@ -64,10 +64,11 @@ manipulation operations `add!` and `subtract!`.
 
 For example:
 
-```
+```clojure
 > (g :eg/Thing2)
 {:eg/number #{2},
  :rdfs/label #{#voc/lstr "Thing 2@en"},
+ :eg/cost #{#voc/dstr "2^^eg:USDollars"},
  :rdf/type #{:eg/Thing}}
 > 
 > (g :eg/Thing2 :eg/number)
@@ -83,6 +84,92 @@ true
 ```
 
 Set the IGraph docs for more details.
+
+#### Blank nodes
+
+You may on occasion need to use blank nodes when adding triples.
+
+```clojure
+> (add! g [[:eg/MyClass
+            :rdfs/subClassOf :rdf-app/_:my-restriction]
+           [:rdf-app/_:my-restriction
+            :rdf/type :owl/Restriction
+            <yadda> <yadda>
+            ]])
+```
+
+Note that the bnode is interned in the `rdf-app` namespace because it
+is not round-trippable, and won't be until it is added to the Jena
+graph and queried for, at which point the triple will look like
+[:eg/MyClass :rdfs/subClassOf
+:jena/_:b-12345-and-so-on]. `:jena/_:b-12345-and-so-on` would then
+show up in the list of subjects and be queryable within the graph.
+
+Note also that the name portion of bnode KWIs all conform to `rdf/bnode-name-re`,
+e.g. "_:yadda-yadda" .
+
+
+### Resource types
+
+This module defines its own [resource type
+context](https://github.com/ont-app/vocabulary#resource-type-contexts):
+`:ont-app.igraph-jena.core/resource-type-context`, derived from
+`:ont-app.rdf.core/resource-type-context`.
+
+This context recognizes the following resource types in addition to those specified in [`:ont-app.rdf.core/resource-type-context`](https://cljdoc.org/d/ont-app/rdf/0.3.1/doc/readme#uris) and [`:ont-app.vocabulary.core/resource-type-context`](https://github.com/ont-app/vocabulary#existing-resource-types).
+
+| Resource| maps to resource type |
+| --- | --- | --- |
+| java.lang.String | :jena/BnodeString | 
+| clojure.lang.Keyword | :jena/BnodeKwi | 
+| org.apache.jena.rdf.model.impl.ResourceImpl | :jena/URI <br> :jena/BNode |
+
+- `:jena/BnodeString` represents a bnode round-trippable under Jena 
+- `:jena/BnodeKwi` represents a KWI for a bnode round-trippable under Jena. It is derived from `:rdf-app/BnodeKwi`
+- `:jena/URI` is a URI represented as a Jena `ResourceImpl`
+
+Each of these resource types have the usual methods defined. See the
+[ont-app/vocabulary documentation](https://github.com/ont-app/vocabulary#resource-types) for details.
+
+### Typed literals
+
+Instances of `org.apache.jena.rdf.model.impl.LiteralImpl` are encoded
+with `#voc/dstr` tags.
+
+Many such tags have methods defined for `voc/untag` from which can can
+derive clojure-native values:
+
+```clj
+> (voc/untag #voc/dstr "2000-01-01T00:00:00Z^^xsd:dateTime"
+#inst "2000-01-01T00:00:00.000-00:00"
+```
+
+Typed literals will be rendered in the graph using their tag unless
+their (voc/as-kwi datatype) is derived from :jena/UntaggedInGraph, in
+which case the native clojure representation will be used. Current
+defaults:
+
+``` clj
+(doseq [to-untag [:transit/json
+                  :xsd/dateTime
+                  :xsd/double
+                  :xsd/int
+                  :xsd/integer
+                  :xsd/long
+                  :xsd/string
+                  ]]
+  (derive to-untag :jena/UntaggedInGraph))
+```
+
+Given a given graph `g`, we can also recover the original object thus:
+
+```clojure
+(-> #voc/dstr "PT15S^^xsd:duration"
+    (jena/create-object-resource g ) ;; LiteralImpl
+    (.getValue)                      ;; org.apache.jena.datatypes.xsd.XSDDuration
+    (.getSeconds))
+15.0
+```
 
 #### Support for encoding clojure containers in transit
 

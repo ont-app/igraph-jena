@@ -1,4 +1,6 @@
-checkouts/
 pom.xml
 target/
 *#
+.cpcache/
+.nrepl-port
+_deps.edn

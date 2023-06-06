@@ -1,4 +1,11 @@
 # Change log
+## 0.3.0
+- Incorporating changes from vocabulary v. 0.4
+  - #voc/dstr tagged literals
+  - Jena LiteralImpl has resource-type methods
+- Incorporating changes from rdf v 0.3
+  - refactoring the way bnodes are represented
+- Better support for round-tripping bnodes
 ## 0.2.3
 - Reforms to caching
 ## 0.2.2
