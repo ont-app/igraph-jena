@@ -127,6 +127,7 @@ This context recognizes the following resource types in addition to those specif
 - `:jena/BnodeString` represents a bnode round-trippable under Jena 
 - `:jena/BnodeKwi` represents a KWI for a bnode round-trippable under Jena. It is derived from `:rdf-app/BnodeKwi`
 - `:jena/URI` is a URI represented as a Jena `ResourceImpl`
+- `:jena/Bnode` is a round-trippable bnode represented as a Jena `ResourceImpl`
 
 Each of these resource types have the usual methods defined. See the
 [ont-app/vocabulary documentation](https://github.com/ont-app/vocabulary#resource-types) for details.
