@@ -119,7 +119,7 @@ context](https://github.com/ont-app/vocabulary#resource-type-contexts):
 This context recognizes the following resource types in addition to those specified in [`:ont-app.rdf.core/resource-type-context`](https://cljdoc.org/d/ont-app/rdf/0.3.1/doc/readme#uris) and [`:ont-app.vocabulary.core/resource-type-context`](https://github.com/ont-app/vocabulary#existing-resource-types).
 
 | Resource| maps to resource type |
-| --- | --- | --- |
+| --- | --- |
 | java.lang.String | :jena/BnodeString | 
 | clojure.lang.Keyword | :jena/BnodeKwi | 
 | org.apache.jena.rdf.model.impl.ResourceImpl | :jena/URI <br> :jena/BNode |
