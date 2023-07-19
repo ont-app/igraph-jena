@@ -1,4 +1,7 @@
 # Change log
+## 0.3.1
+- Incorporating changes from ont-app/rdf v 0.3.2
+
 ## 0.3.0
 - Incorporating changes from vocabulary v. 0.4
   - #voc/dstr tagged literals

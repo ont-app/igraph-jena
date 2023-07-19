@@ -150,8 +150,7 @@
     :jena/BnodeString
     ;; else handle it like any other string....
     (let [m (methods voc/resource-type)
-          parent-context (unique (parents (::voc/hierarchy @voc/resource-types)
-                                          ::resource-type-context))
+          parent-context (unique (parents ::resource-type-context))
           redispatch (m [parent-context (type this)])]
       (redispatch this))))
 
@@ -169,8 +168,7 @@
 
     :else ;; else handle like any other keyword...
     (let [m (methods voc/resource-type)
-          parent-context (unique (parents (::voc/hierarchy @voc/resource-types)
-                                          ::resource-type-context))
+          parent-context (unique (parents ::resource-type-context))
           redispatch (m [parent-context (type this)])
           ]
       (redispatch this))))
@@ -264,6 +262,8 @@
   Where
   - `elt` is bound to some variable in a query posed to a jena model."
   [elt]
+  (trace ::StartingInterpretBindingElement
+         ::elt elt)
   (value-trace
    ::InterpretBindingElementResult
    [:elt elt]
